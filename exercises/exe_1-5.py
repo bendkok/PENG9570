@@ -22,6 +22,7 @@ def solve(use_5_points=False,
           T       = 20,
           n_saved = 10,
           plot_every = 10,
+          double_psi = False,
           ):
 
     use_5_points = True
@@ -33,7 +34,13 @@ def solve(use_5_points=False,
     # print(times[1]-times[0], times[2]-times[1], dt)
 
     # initial wave function
-    psi0 = np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
+    # psi0 = np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
+    
+    if double_psi:
+        psi0 = (psi_inital(x, x0=-25) + psi_inital(x, x0=25, p0=-3)) / np.sqrt(2)
+    else:
+        psi0 = psi_inital(x)
+
 
     h = (np.max(x)-np.min(x))/n # physical step length
 
@@ -82,11 +89,14 @@ def solve(use_5_points=False,
 
     # here we are creating sub plots
     figure, ax = plt.subplots(figsize=(10, 8))
-    line1, = ax.plot(x, np.abs(psi_3)**2, label="3-points")
-    line2, = ax.plot(x, np.abs(psi_5)**2, label="5-points")
-    line3, = ax.plot(x, np.abs(psi_fft)**2, label="FFT")
-    line4, = ax.plot(x, psi_analytical(0, x), '--', label="Analytical")
-    ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
+    # line1, = ax.plot(x, np.abs(psi_3)**2, label="3-points")
+    # line2, = ax.plot(x, np.abs(psi_5)**2, label="5-points")
+    # line3, = ax.plot(x, np.abs(psi_fft)**2, label="FFT")
+    line5, = ax.plot(x, np.real(psi_fft), label="FFT real")
+    line6, = ax.plot(x, np.imag(psi_fft), '--', label="FFT imag")
+    # line4, = ax.plot(x, psi_analytical(0, x), '--', label="Analytical")
+    # ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
+    # ax.set_ylim(top = np.max(np.abs(psi_fft)**2)*2.1, bottom=-0.01)
 
     plt.xlabel(r"$x$")
     plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
@@ -112,12 +122,14 @@ def solve(use_5_points=False,
             psi_anal = psi_analytical(times[t], x)
             # line1.set_xdata(x)
             
-            line1.set_ydata(np.abs(psi_3)**2)
-            line2.set_ydata(np.abs(psi_5)**2)
-            line3.set_ydata(np.abs(psi_fft)**2)
-            line4.set_ydata(psi_anal)
+            # line1.set_ydata(np.abs(psi_3)**2)
+            # line2.set_ydata(np.abs(psi_5)**2)
+            # line3.set_ydata(np.abs(psi_fft)**2)
+            line5.set_ydata(np.real(psi_fft))
+            line6.set_ydata(np.imag(psi_fft))
+            # line4.set_ydata(psi_anal)
             
-            plt.title(f"t = {times[t]}.")
+            plt.title("t = {:.2f}.".format(times[t]))
 
             # drawing updated values
             figure.canvas.draw()
@@ -137,6 +149,8 @@ def solve(use_5_points=False,
     plt.show()
     return psi_3, psi_5, psi_anal, x, times[-1], psi0
 
+def psi_inital(x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
+    return np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
 
 def Crank_Nicolson(psi, F, dt):
     # a numerical approximation
@@ -170,7 +184,11 @@ T           = 35
 # n_saved     = 20
 plot_every  = 10
 
-psis_3, psis_5, psi_anal, x, time_final, psi0 = solve(use_5_points=False, x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, plot_every=plot_every)
+# psis_3, psis_5, psi_anal, x, time_final, psi0 = solve(use_5_points=False, x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, plot_every=plot_every)
+
+psis_3, psis_5, psi_anal, x, time_final, psi0 = solve(use_5_points=False, x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, plot_every=plot_every, double_psi=True)
+
+
 # psis_5, x, save_times = solve(use_5_points=True , x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, n_saved=n_saved)
 
 # plot_number = -1
