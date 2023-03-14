@@ -64,20 +64,20 @@ def make_5_point_Hamiltonian(n, h, L, dt):
     iH_5dt2 = .5j*dt*H_5                       # adjusted Hamiltonian to fit Crank Nicolson
     return exp_iH_5dt, iH_5dt2, H_5
 
-def make_fft_Hamiltonian(n, h, L, dt):
+def make_fft_Hamiltonian(n, h, L, dt, V=0):
     """
     The Hamiltonian when using Fourier transformation to discretice the spatial derivative.
     When we take the FFT, we can take the spatial derivative by simply multiplying by ik,
     and then transforming back. 
     """
     k_fft = 2*(np.pi/L)*np.array([i for i in range(int(n/2))]+[ j for j in range(int(-n/2),0)] ) 
-    Hfft  = -1/2 * sc.fft.ifft2(sp.diags((1j*k_fft)**2) @ sc.fft.fft2(np.diag(np.ones(n)))) # Hamiltonian 
+    Hfft  = 1/2 * sc.fft.ifft2(sp.diags(k_fft**2) @ sc.fft.fft2(np.diag(np.ones(n)))) + V # Hamiltonian 
     exp_iH_fft = sl.expm(-1j*Hfft*dt) # adjusted Hamiltonian to fit the Magnus propagator
     iH_fftdt2 = .5j*dt*Hfft           # adjusted Hamiltonian to fit Crank Nicolson
     return exp_iH_fft, iH_fftdt2, Hfft
 
 
-def solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, analytical=[]):
+def solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, analytical=[], V=None):
     
     plt.ion()
 
@@ -95,6 +95,11 @@ def solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, t
     lines = [(ax.plot(x, np.abs(psis[i])**2, label=labels[i]))[0] for i in range(len(psis))]
     if len(analytical) > 0:
         line_anal, = ax.plot(x, analytical[0], '--', label="Analytical")
+    
+    if V is not None:
+        line_V, = ax.plot(x, V.diagonal(), '--', label="Potenital Barrier")
+        ax.set_ylim(top = np.max(np.abs(psis)**2)*2.2, bottom=-0.01)
+        
     plt.legend()
     # ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
     
@@ -121,9 +126,7 @@ def solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, t
             # currently waiting have been processed
             figure.canvas.flush_events()
     
-    # makes the plot window stay up until it is closed
-    plt.ioff()
-    plt.show()
+    return psis
 
 
 def exe_1_5(x0          = -20,
@@ -222,13 +225,163 @@ def exe_1_8(x0          = -20,
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
     
     solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator)
+    
 
+def rectangular_potential(x, V0, s, w):
+    return sp.diags( V0 / (1 + np.exp(s * (np.abs(x) - w/2))))
+
+def exe_2_1(x0          = -50,
+            sigmap      = 0.2,
+            p0          = 1,
+            tau         = 0,
+            L           = 300,
+            n           = 512,
+            t_steps     = 300,
+            T           = 100,
+            n_saved     = 10,
+            plot_every  = 3,
+            V0          = 3,
+            w           = 2,
+            s           = 5,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    potential = rectangular_potential(x, V0, s, w)
+    
+    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    Hamiltonians = [make_fft_Hamiltonian(n, h, L, dt, V=potential)[0]]
+    labels       = ["FFT"]
+    # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    res_psii = solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, V=potential)
+    
+    trans_loc  = np.where(x>0)[0]
+    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_pro  = np.trapz(trans_prob, x[trans_loc])
+    
+    refle_loc  = np.where(x<=0)[0]
+    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_pro  = np.trapz(refle_prob, x[refle_loc])
+    
+    print(f"Transmission probability: {trans_pro}.")
+    print(f"Reflection probability:   {refle_pro}.")
+    print(f"Sum probability:          {trans_pro+refle_pro}.")
+    
+    # makes the plot window stay up until it is closed
+    plt.ioff()
+    plt.show()
+
+
+def exe_2_3(x0          = -50,
+            sigmap      = 0.2,
+            p0          = 1,
+            tau         = 0,
+            L           = 300,
+            n           = 512,
+            t_steps     = 300,
+            T           = 100,
+            n_saved     = 10,
+            plot_every  = 3,
+            V0          = 1,
+            w           = 1,
+            s           = 5,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    potential = rectangular_potential(x, V0, s, w)
+    
+    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    Hamiltonians = [make_fft_Hamiltonian(n, h, L, dt, V=potential)[0]]
+    labels       = ["FFT"]
+    # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    res_psii = solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, V=potential)
+    
+    trans_loc  = np.where(x>0)[0]
+    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_pro  = np.trapz(trans_prob, x[trans_loc])
+    
+    refle_loc  = np.where(x<=0)[0]
+    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_pro  = np.trapz(refle_prob, x[refle_loc])
+    
+    print(f"Transmission probability: {trans_pro}.")
+    print(f"Reflection probability:   {refle_pro}.")
+    print(f"Sum probability:          {trans_pro+refle_pro}.")
+    
+    # makes the plot window stay up until it is closed
+    plt.ioff()
+    plt.show()
+    
+    
+    
+def exe_2_4(x0          = -80,
+            sigmap      = 0.1,
+            p0          = 2.5,
+            tau         = 0,
+            L           = 300,
+            n           = 1024,
+            t_steps     = 300,
+            T           = 60,
+            n_saved     = 10,
+            plot_every  = 2,
+            V0          = 3,
+            w           = 2,
+            s           = 5,
+            d           = 5,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    potential = rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
+    
+    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    Hamiltonians = [make_fft_Hamiltonian(n, h, L, dt, V=potential)[0]]
+    labels       = ["FFT"]
+    # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    res_psii = solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, V=potential)
+    
+    trans_loc  = np.where(x>d)[0]
+    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_pro  = np.trapz(trans_prob, x[trans_loc])
+    
+    trap_loc   = np.where(np.abs(x)<d)[0]
+    trap_prob  = np.abs(res_psii[0][trap_loc])**2
+    trap_pro   = np.trapz(trap_prob, x[trap_loc])
+    
+    refle_loc  = np.where(x<=-d)[0]
+    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_pro  = np.trapz(refle_prob, x[refle_loc])
+    
+    print(f"Transmission probability: {trans_pro}.")
+    print(f"Reflection probability:   {refle_pro}.")
+    print(f"Trapped probability:      {trap_pro}.")
+    print(f"Sum probability:          {trans_pro+refle_pro+trap_pro}.")
+    
+    # makes the plot window stay up until it is closed
+    plt.ioff()
+    plt.show()
 
 if __name__ == "__main__":
-    exe_1_5()
-    exe_1_6()
-    exe_1_7()
-    exe_1_8()
+    # exe_1_5()
+    # exe_1_6()
+    # exe_1_7()
+    # exe_1_8()
+    # exe_2_1()
+    # exe_2_3()
+    exe_2_4()
 
 
 
