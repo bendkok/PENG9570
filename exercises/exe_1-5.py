@@ -91,12 +91,12 @@ def solve(use_5_points=False,
     figure, ax = plt.subplots(figsize=(10, 8))
     # line1, = ax.plot(x, np.abs(psi_3)**2, label="3-points")
     # line2, = ax.plot(x, np.abs(psi_5)**2, label="5-points")
-    # line3, = ax.plot(x, np.abs(psi_fft)**2, label="FFT")
-    line5, = ax.plot(x, np.real(psi_fft), label="FFT real")
-    line6, = ax.plot(x, np.imag(psi_fft), '--', label="FFT imag")
+    line3, = ax.plot(x, np.abs(psi_fft)**2, label="FFT")
+    # line5, = ax.plot(x, np.real(psi_fft), label="FFT real")
+    # line6, = ax.plot(x, np.imag(psi_fft), '--', label="FFT imag")
     # line4, = ax.plot(x, psi_analytical(0, x), '--', label="Analytical")
     # ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
-    # ax.set_ylim(top = np.max(np.abs(psi_fft)**2)*2.1, bottom=-0.01)
+    ax.set_ylim(top = np.max(np.abs(psi_fft)**2)*2.1) #, bottom=-0.01)
 
     plt.xlabel(r"$x$")
     plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
@@ -124,9 +124,9 @@ def solve(use_5_points=False,
             
             # line1.set_ydata(np.abs(psi_3)**2)
             # line2.set_ydata(np.abs(psi_5)**2)
-            # line3.set_ydata(np.abs(psi_fft)**2)
-            line5.set_ydata(np.real(psi_fft))
-            line6.set_ydata(np.imag(psi_fft))
+            line3.set_ydata(np.abs(psi_fft)**2)
+            # line5.set_ydata(np.real(psi_fft))
+            # line6.set_ydata(np.imag(psi_fft))
             # line4.set_ydata(psi_anal)
             
             plt.title("t = {:.2f}.".format(times[t]))
@@ -175,6 +175,7 @@ def psi_analytical(t, x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5,):
 # print(psi2)
 
 x0          = -20
+L           = 200
 sigmap      = 0.2
 p0          = 3
 tau         = 5
@@ -186,7 +187,7 @@ plot_every  = 10
 
 # psis_3, psis_5, psi_anal, x, time_final, psi0 = solve(use_5_points=False, x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, plot_every=plot_every)
 
-psis_3, psis_5, psi_anal, x, time_final, psi0 = solve(use_5_points=False, x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, plot_every=plot_every, double_psi=True)
+psis_3, psis_5, psi_anal, x, time_final, psi0 = solve(use_5_points=False, x0=x0, L=L, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, plot_every=plot_every, double_psi=True)
 
 
 # psis_5, x, save_times = solve(use_5_points=True , x0=x0, sigmap=sigmap, p0=p0, tau=tau, T=T, n=n, t_steps=t_steps, n_saved=n_saved)

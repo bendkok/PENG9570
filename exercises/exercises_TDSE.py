@@ -1,0 +1,241 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Mar 14 11:43:08 2023
+
+@author: benda
+"""
+
+import numpy as np
+import scipy as sc
+import scipy.sparse as sp
+import scipy.linalg as sl
+import matplotlib.pyplot as plt
+import seaborn as sns
+from tqdm import tqdm
+import time
+
+sns.set_theme(style="dark") # nice plots
+
+
+def psi_single_inital(x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
+    # Initial value for a wave function with one Gaussian wave
+    return np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
+
+def psi_single_analytical(t, x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5,): 
+    # Analytical solution for a wave function with one Gaussian wave
+    N2 = np.sqrt(2/np.pi) * sigmap / np.sqrt(1+4*sigmap**4*(t-tau)**2)
+    return  N2 * np.exp( - 2 * sigmap**2 * (x - x0 - p0*t)**2 / (1 + 4*sigmap**4*(t-tau)**2) )
+
+def psi_double_inital(x, x0 = -25, p0 = 3, sigmap0 = 0.2, tau0 = 5, x1 = 25, p1 = -3, sigmap1 = 0.2, tau1 = 5):
+    # Initial value for a wave function with two Gaussian waves
+    return (psi_single_inital(x, x0=x0, p0=p0, sigmap=sigmap0, tau=tau0) + psi_single_inital(x, x0=x1, p0=p1, sigmap=sigmap1, tau=tau1)) / np.sqrt(2)
+
+def Crank_Nicolson(psi, F, dt):
+    # a numerical approximation
+    psi_new = ((np.identity(F.shape[0]) - F) @ psi)
+    psi_new = psi_new.T
+    psi_new = np.linalg.inv(np.identity(F.shape[0]) + F) @ psi_new
+    return np.ravel(psi_new)
+
+def Magnus_propagator(psi, H_adjusted, dt):
+    # a numerical appoximation
+    return H_adjusted @ psi
+
+
+def make_3_point_Hamiltonian(n, h, L, dt):
+    """
+    The Hamiltonian when using 3-point finite difference to discretice the spatial derivative.
+    """
+    ones = np.ones(n)
+    D2_3 = sp.diags( [ ones[1:], -2*ones, ones[1:]] , [-1, 0, 1], format='coo') / (h*h) # second order derivative
+    H_3 = - 1/2 * D2_3 # Hamiltonian 
+    exp_iH_3dt = sl.expm(-1j*H_3.todense()*dt) # adjusted Hamiltonian to fit the Magnus propagator
+    iH_3dt2 = .5j*dt*H_3                       # adjusted Hamiltonian to fit Crank Nicolson
+    return exp_iH_3dt, iH_3dt2, H_3
+
+def make_5_point_Hamiltonian(n, h, L, dt):
+    """
+    The Hamiltonian when using 5-point finite difference to discretice the spatial derivative.
+    """
+    ones = np.ones(n)
+    D2_5 = sp.diags( [-ones[2:], 16*ones[1:], -30*ones, 16*ones[1:], -ones[2:]], [-2,-1,0,1,2], format='coo') / (12*h*h) # second order derivative
+    H_5 = - 1/2 * D2_5 # Hamiltonian 
+    exp_iH_5dt = sl.expm(-1j*H_5.todense()*dt) # adjusted Hamiltonian to fit the Magnus propagator
+    iH_5dt2 = .5j*dt*H_5                       # adjusted Hamiltonian to fit Crank Nicolson
+    return exp_iH_5dt, iH_5dt2, H_5
+
+def make_fft_Hamiltonian(n, h, L, dt):
+    """
+    The Hamiltonian when using Fourier transformation to discretice the spatial derivative.
+    When we take the FFT, we can take the spatial derivative by simply multiplying by ik,
+    and then transforming back. 
+    """
+    k_fft = 2*(np.pi/L)*np.array([i for i in range(int(n/2))]+[ j for j in range(int(-n/2),0)] ) 
+    Hfft  = -1/2 * sc.fft.ifft2(sp.diags((1j*k_fft)**2) @ sc.fft.fft2(np.diag(np.ones(n)))) # Hamiltonian 
+    exp_iH_fft = sl.expm(-1j*Hfft*dt) # adjusted Hamiltonian to fit the Magnus propagator
+    iH_fftdt2 = .5j*dt*Hfft           # adjusted Hamiltonian to fit Crank Nicolson
+    return exp_iH_fft, iH_fftdt2, Hfft
+
+
+def solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, analytical=[]):
+    
+    plt.ion()
+
+    # here we are creating sub plots
+    figure, ax = plt.subplots(figsize=(10, 8))
+    # make the plots look a bit nicer
+    ax.set_ylim(top = np.max(np.abs(psis)**2)*2.2, bottom=-0.01)
+    plt.xlabel(r"$x$")
+    plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    plt.grid()
+    
+    plt.title("t = 0.")
+    
+    # plot the initial wave functions
+    lines = [(ax.plot(x, np.abs(psis[i])**2, label=labels[i]))[0] for i in range(len(psis))]
+    if len(analytical) > 0:
+        line_anal, = ax.plot(x, analytical[0], '--', label="Analytical")
+    plt.legend()
+    # ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
+    
+    # goes thorugh all the time steps
+    for t in tqdm(range(len(times))):
+        
+        # finds the new values for psi
+        for i in range(len(psis)):
+            psis[i] = time_propegator(psis[i], Hamiltonians[i], dt)
+
+        # we don't update the plot every single time step        
+        if t % plot_every == 0:
+            [lines[i].set_ydata(np.abs(psis[i])**2) for i in range(len(psis))]
+            if len(analytical) > 0:
+                line_anal.set_ydata( analytical[t] )
+            
+            plt.title("t = {:.2f}.".format(times[t]))
+            
+            # drawing updated values
+            figure.canvas.draw()
+        
+            # This will run the GUI event
+            # loop until all UI events
+            # currently waiting have been processed
+            figure.canvas.flush_events()
+    
+    # makes the plot window stay up until it is closed
+    plt.ioff()
+    plt.show()
+
+
+def exe_1_5(x0          = -20,
+            sigmap      = 0.2,
+            p0          = 3,
+            tau         = 5,
+            L           = 100,
+            n           = 512,
+            t_steps     = 100,
+            T           = 20,
+            n_saved     = 10,
+            plot_every  = 1,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    psis         = [psi_single_inital(x,x0,sigmap,p0,tau),psi_single_inital(x,x0,sigmap,p0,tau)]
+    Hamiltonians = [make_3_point_Hamiltonian(n, h, L, dt)[1], make_5_point_Hamiltonian(n, h, L, dt)[1]]
+    labels       = ["3-points", "5-points"]
+    analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Crank_Nicolson, analytical=analytical)
+
+def exe_1_6(x0          = -20,
+            sigmap      = 0.2,
+            p0          = 3,
+            tau         = 5,
+            L           = 100,
+            n           = 512,
+            t_steps     = 200,
+            T           = 35,
+            n_saved     = 10,
+            plot_every  = 2,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    psis         = [psi_single_inital(x,x0,sigmap,p0,tau),psi_single_inital(x,x0,sigmap,p0,tau)]
+    Hamiltonians = [make_3_point_Hamiltonian(n, h, L, dt)[0], make_5_point_Hamiltonian(n, h, L, dt)[0]]
+    labels       = ["3-points", "5-points"]
+    analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, analytical=analytical)
+
+def exe_1_7(x0          = -20,
+            sigmap      = 0.2,
+            p0          = 3,
+            tau         = 5,
+            L           = 100,
+            n           = 512,
+            t_steps     = 200,
+            T           = 35,
+            n_saved     = 10,
+            plot_every  = 2,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]*3
+    Hamiltonians = [make_3_point_Hamiltonian(n, h, L, dt)[0], make_5_point_Hamiltonian(n, h, L, dt)[0], make_fft_Hamiltonian(n, h, L, dt)[0]]
+    labels       = ["3-points", "5-points", "FFT"]
+    analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator, analytical=analytical)
+
+
+def exe_1_8(x0          = -20,
+            sigmap      = 0.2,
+            p0          = 3,
+            tau         = 5,
+            L           = 100,
+            n           = 512,
+            t_steps     = 200,
+            T           = 35,
+            n_saved     = 10,
+            plot_every  = 2,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+    
+    psis         = [psi_double_inital(x)]
+    Hamiltonians = [make_fft_Hamiltonian(n, h, L, dt)[0]]
+    labels       = ["FFT"]
+    # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    solve_while_plotting(x, dt, psis, Hamiltonians, times, plot_every, labels, time_propegator=Magnus_propagator)
+
+
+if __name__ == "__main__":
+    exe_1_5()
+    exe_1_6()
+    exe_1_7()
+    exe_1_8()
+
+
+
+
+
+
+
+
+
+
