@@ -322,8 +322,87 @@ def exe_2_3(x0          = -50,
     plt.show()
     
     
+def solve_no_plotting(x, psis, Hamiltonians):
     
-def exe_2_4(x0          = -80,
+    # finds the new values for psi
+    for i in range(len(psis)):
+        psis[i] = Magnus_propagator(psis[i], Hamiltonians[i], 0)
+    
+    return psis
+
+
+def exe_2_4(x0          = -70,
+            sigmap      = 0.1,
+            p0_min      = .01,
+            p0_max      = 5,
+            n_p0        = 50,
+            tau         = 0,
+            L           = 200,
+            n           = 512,
+            T           = 60,
+            V0          = 2,
+            w           = .2,
+            s           = 5,
+            d           = 1,
+            ):
+    
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    h = (np.max(x)-np.min(x))/n # physical step length
+    
+    potential = rectangular_potential(x+d, V0, s, w) + rectangular_potential(x-d, V0, s, w)
+    
+    p0s = np.linspace(p0_min, p0_max, n_p0)
+    
+    # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
+    
+    
+    trans_proability = []
+    trap_proability  = []
+    refle_proability = []
+    
+    for p in tqdm(range(len(p0s))):
+        
+        p0 = p0s[p]
+        psi         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+        Hamiltonian = [make_fft_Hamiltonian(n, h, L, (L/4 - x0)/(p0), V=potential)[0]] # T = (L/4 - x0)/p0
+        
+        res_psi = solve_no_plotting(x, psi, Hamiltonian)[0]
+        
+        trans_loc  = np.where(x>d)[0]
+        trans_prob = np.abs(res_psi[trans_loc])**2
+        trans_proability.append( np.trapz(trans_prob, x[trans_loc]) )
+        
+        trap_loc   = np.where(np.abs(x)<d)[0]
+        trap_prob  = np.abs(res_psi[trap_loc])**2
+        trap_proability.append(  np.trapz(trap_prob, x[trap_loc]))
+        
+        refle_loc  = np.where(x<=-d)[0]
+        refle_prob = np.abs(res_psi[refle_loc])**2
+        refle_proability.append(  np.trapz(refle_prob, x[refle_loc]) )
+    
+    # print(f"Transmission probability: {trans_pro}.")
+    # print(f"Reflection probability:   {refle_pro}.")
+    # print(f"Trapped probability:      {trap_pro}.")
+    # print(f"Sum probability:          {trans_pro+refle_pro+trap_pro}.")
+    
+    figure, ax = plt.subplots(figsize=(10, 8))
+    # ax.set_ylim(top = np.max(np.abs(psis)**2)*2.2, bottom=-0.01)
+    line_trans, = ax.plot(p0s, trans_proability, label="Transmission")
+    line_refle, = ax.plot(p0s, refle_proability, label="Reflection")
+    line_trap,  = ax.plot(p0s, trap_proability,  label="Trapped")
+    plt.xlabel(r"$p_0$")
+    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    plt.ylabel("Probaility")
+    plt.grid()
+    plt.legend()
+    # plt.title("t = 0.")
+    plt.show()
+    
+    plt.plot(x, np.abs(res_psi)**2)
+    plt.show()
+
+    
+def exe_2_4_anim(x0          = -80,
             sigmap      = 0.1,
             p0          = 2.5,
             tau         = 0,
@@ -382,6 +461,7 @@ if __name__ == "__main__":
     # exe_2_1()
     # exe_2_3()
     exe_2_4()
+    exe_2_4_anim()
 
 
 
