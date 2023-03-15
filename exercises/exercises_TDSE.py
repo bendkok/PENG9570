@@ -450,8 +450,8 @@ def exe_2_4_anim(x0          = -80,
     print(f"Sum probability:          {trans_pro+refle_pro+trap_pro}.")
     
     # makes the plot window stay up until it is closed
-    plt.ioff()
-    plt.show()
+    # plt.ioff()
+    # plt.show()
 
 if __name__ == "__main__":
     # exe_1_5()
