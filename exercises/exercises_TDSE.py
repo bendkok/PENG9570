@@ -561,7 +561,7 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 
 
 def exe_CAP(x0          = -30,
-            sigmap      = 0.01,
+            sigmap      = 0.1,
             p0_min      = .3,
             p0_max      = 6,
             n_p0        = 200,
@@ -615,7 +615,7 @@ def exe_CAP(x0          = -30,
         res_psi     = psi
         not_converged = True
 
-        stop_test = int(300/p0)
+        stop_test = 100 # int(300/p0)
 
         l = 0
         while not_converged: # np.sum(np.abs(res_psi)**2) > 1e-6:
