@@ -78,6 +78,8 @@ def make_fft_Hamiltonian(n, L,dt, V=0):
     """
     k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
     Hfft  = 1/2 * sc.fft.ifft2(sp.diags(k_fft**2) @ sc.fft.fft2(np.diag(np.ones(n)))) + V # Hamiltonian
+    # Hfft  = 1/2 * sc.fft.ifft2(sp.diags(k_fft**2) @ sc.fft.fft(np.diag(np.ones(n)), axis=0)) + V # Hamiltonian
+    # Hfft  = 1/2 * sc.fft.fft(sp.diags(k_fft**2) * sc.fft.fft(np.diag(np.ones(n)), axis=1),axis=1) + V # Hamiltonian
     # print(np.where(sc.fft.fft2(np.diag(np.ones(n)))> 1e-10)[0].shape, np.where(sc.fft.fft2(np.diag(np.ones(n)))> 1e-10)[1].shape )
     # print(np.where(sc.fft.fft(np.ones(n)) > 0))
     # Hfft  = 1/2 * sp.diags( sc.fft.ifft(k_fft**2 * sc.fft.fft(np.ones(n)) )) + V # Hamiltonian
@@ -564,7 +566,7 @@ def exe_CAP(x0          = -30,
             sigmap      = 0.1,
             p0_min      = .3,
             p0_max      = 6,
-            n_p0        = 200,
+            n_p0        = 100,
             tau         = 0,
             L           = 200,
             n           = 512,
@@ -575,7 +577,7 @@ def exe_CAP(x0          = -30,
             d           = 2,
             pot_2       = 1,
             animate     = False,
-            gamma_0     = .01,
+            gamma_0     = .005,
             R_part      = .8,
             ):
 
@@ -600,11 +602,14 @@ def exe_CAP(x0          = -30,
 
     fininsh_l = []
 
+    Ts  = (L/4 + np.abs(x0))/np.abs(p0s)
+    dts = Ts/t_steps
+
     for p in tqdm(range(len(p0s))):
 
         p0  = p0s[p]
-        T   = (L/4 + np.abs(x0))/np.abs(p0) # (L/4 - x0)/(p0)*4
-        dt  = T/t_steps
+        T   = Ts [p] # (L/4 + np.abs(x0))/np.abs(p0) # (L/4 - x0)/(p0)*4
+        dt  = dts[p] # T/t_steps
         dt2 = dt*2
         # times       = np.linspace(dt, T, t_steps)
         # dt          = T[2] - T[1]
@@ -615,7 +620,7 @@ def exe_CAP(x0          = -30,
         res_psi     = psi
         not_converged = True
 
-        stop_test = 100 # int(300/p0)
+        stop_test = 200 # int(300/p0)
 
         l = 0
         while not_converged: # np.sum(np.abs(res_psi)**2) > 1e-6:
@@ -674,27 +679,28 @@ def exe_CAP(x0          = -30,
     # line_trans, = ax.plot(p0s, trans_proability, label="Transmission")
     # line_refle, = ax.plot(p0s, refle_proability, label="Reflection")
     # line_trap,  = ax.plot(p0s, trap_proability,  label="Trapped")
-    plt.plot(p0s, trans_proability, label="Transmission")
-    plt.plot(p0s, refle_proability, label="Reflection")
-    plt.plot(p0s, trap_proability,  label="Trapped")
-    plt.xlabel(r"$p_0$")
-    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel("Probaility")
-    plt.grid()
-    plt.legend()
-    title = "Double potential." if pot_2 == 1 else "Single potential."
-    title = title +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
-    plt.title(title)
-    plt.show()
+
+    # plt.plot(p0s, trans_proability, label="Transmission")
+    # plt.plot(p0s, refle_proability, label="Reflection")
+    # plt.plot(p0s, trap_proability,  label="Trapped")
+    # plt.xlabel(r"$p_0$")
+    # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    # plt.ylabel("Probaility")
+    # plt.grid()
+    # plt.legend()
+    # title = "Double potential." if pot_2 == 1 else "Single potential."
+    # title = title +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    # plt.title(title)
+    # plt.show()
 
     # plt.plot(x, np.abs(res_psi)**2)
     # plt.plot(x, potential.diagonal(), '--') # /np.max(np.abs(res_psi)**2)
     # plt.ylim(top = np.max(np.abs(res_psi)**2) * 1.2, bottom = -0.01)
     # plt.show()
 
-    loc = np.where(np.abs(x) < 3*d)[0]
-    plt.plot(x[loc], potential.diagonal()[loc], 'o--')
-    plt.show()
+    # loc = np.where(np.abs(x) < 3*d)[0]
+    # plt.plot(x[loc], potential.diagonal()[loc], 'o--')
+    # plt.show()
 
     sums = [Transmission[s]+Reflection[s] for s in range(len(Transmission))]
 
@@ -723,9 +729,12 @@ def exe_CAP(x0          = -30,
 
     if animate:
         n2 = int(n_p0/2)
-        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
-        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
-        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
+        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,fininsh_l[ 0],fininsh_l[ 0]*dts[ 0],int(fininsh_l[ 0]/400),V0,w,s,d,gamma_0,R_part)
+        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,fininsh_l[n2],fininsh_l[n2]*dts[n2],int(fininsh_l[n2]/400),V0,w,s,d,gamma_0,R_part)
+        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,fininsh_l[-1],fininsh_l[-1]*dts[-1],int(fininsh_l[-1]/400),V0,w,s,d,gamma_0,R_part)
+        # exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
+        # exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
+        # exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
 
 
 def exe_CAP_anim(x0          = 30,
@@ -809,4 +818,4 @@ if __name__ == "__main__":
 
     print("\nCAP:")
     # exe_CAP_anim()
-    exe_CAP()
+    exe_CAP(animate=True)
