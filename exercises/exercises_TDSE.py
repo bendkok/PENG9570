@@ -42,42 +42,43 @@ def Crank_Nicolson(psi, F):
 
 
 def Magnus_propagator(psi, H_adjusted):
-    # a numerical appoximation
+    # a better numerical approximation
     return H_adjusted @ psi
 
 
-def make_3_point_Hamiltonian(n, h, dt):
+def make_3_point_Hamiltonian(n, h, dt, V=0):
     """
     The Hamiltonian when using 3-point finite difference to discretice the spatial derivative.
     """
     ones = np.ones(n)
     D2_3 = sp.diags( [ ones[1:], -2*ones, ones[1:]], [-1, 0, 1], format='coo') / (h*h) # second order derivative
-    H_3 = - 1/2 * D2_3 # Hamiltonian
+    H_3 = - 1/2 * (D2_3 + V) # Hamiltonian
     exp_iH_3dt = sl.expm(-1j*H_3.todense()*dt) # adjusted Hamiltonian to fit the Magnus propagator
     iH_3dt2 = .5j*dt*H_3                       # adjusted Hamiltonian to fit Crank Nicolson
     return exp_iH_3dt, iH_3dt2, H_3
 
 
-def make_5_point_Hamiltonian(n, h, dt):
+def make_5_point_Hamiltonian(n, h, dt, V=0):
     """
     The Hamiltonian when using 5-point finite difference to discretice the spatial derivative.
     """
     ones = np.ones(n)
     D2_5 = sp.diags( [-ones[2:], 16*ones[1:], -30*ones, 16*ones[1:], -ones[2:]], [-2,-1,0,1,2], format='coo') / (12*h*h) # second order derivative
-    H_5 = - 1/2 * D2_5 # Hamiltonian
+    H_5 = - 1/2 * (D2_5 + V) # Hamiltonian
     exp_iH_5dt = sl.expm(-1j*H_5.todense()*dt) # adjusted Hamiltonian to fit the Magnus propagator
     iH_5dt2 = .5j*dt*H_5                       # adjusted Hamiltonian to fit Crank Nicolson
     return exp_iH_5dt, iH_5dt2, H_5
 
 
-def make_fft_Hamiltonian(n, L,dt, V=0):
+def make_fft_Hamiltonian(n, L, dt, V=0):
     """
     The Hamiltonian when using Fourier transformation to discretice the spatial derivative.
     When we take the FFT, we can take the spatial derivative by simply multiplying by ik,
     and then transforming back.
     """
     k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-    Hfft  = 1/2 * sc.fft.ifft2(sp.diags(k_fft**2) @ sc.fft.fft2(np.diag(np.ones(n)))) + V # Hamiltonian
+    # Hfft  = 1/2 * sc.fft.ifft2(sp.diags(k_fft**2) @ sc.fft.fft2(np.diag(np.ones(n)))) + V # Hamiltonian
+    Hfft  = 1/2 * sc.fft.ifft(sp.diags(k_fft**2) * sc.fft.fft(np.eye(n), axis=0), axis=0) + V # Hamiltonian 
     # Hfft  = 1/2 * sc.fft.ifft2(sp.diags(k_fft**2) @ sc.fft.fft(np.diag(np.ones(n)), axis=0)) + V # Hamiltonian
     # Hfft  = 1/2 * sc.fft.fft(sp.diags(k_fft**2) * sc.fft.fft(np.diag(np.ones(n)), axis=1),axis=1) + V # Hamiltonian
     # print(np.where(sc.fft.fft2(np.diag(np.ones(n)))> 1e-10)[0].shape, np.where(sc.fft.fft2(np.diag(np.ones(n)))> 1e-10)[1].shape )
@@ -97,7 +98,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
     # here we are creating sub plots
     figure, ax = plt.subplots(figsize=(12, 8))
     # make the plots look a bit nicer
-    ax.set_ylim(top = np.max(np.abs(psis0)**2)*2.2, bottom=-0.01)
+    ax.set_ylim(top = np.max(np.abs(psis0[0])**2)*2.2, bottom=-0.01)
     plt.xlabel(r"$x$")
     ax.set_ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
     plt.grid()
@@ -108,7 +109,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         ax_p.set_ylabel("Potential")
 
     if V is not None:
-        line_V, = ax_p.plot(x, V.diagonal(), '--', color='tab:orange', label="Potential Barrier")
+        line_V, = ax_p.plot(x, V.diagonal(), '--', color='tab:orange', label="Potential Barrier", zorder=2)
         # ax.set_ylim(top = np.max(np.abs(psis)**2)*1.5, bottom=-0.01)
         # align_yaxis(ax, ax_p, 1.3)
         # ax_p.set_ylabel("Potential")
@@ -124,14 +125,14 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
     # plot the initial wave functions
     lines = [(ax.plot(x, np.abs(psis[i])**2, label=labels[i]))[0] for i in range(len(psis))]
     if len(analytical) > 0:
-        line_anal, = ax.plot(x, analytical[0], '--', label="Analytical")
+        line_anal, = ax.plot(x, analytical[0], '--', label="Analytical") # TODO: is behind the grid
 
 
     if len(psis0) == 1: # or psis0.count(psis0[0]) > 1:
-        line_0, = ax.plot(x, np.abs(psis0[0])**2, 'g--', label=r"$\psi_0$", zorder=0)
+        line_0, = ax.plot(x, np.abs(psis0[0])**2, 'g--', label=r"$\psi_0$", zorder=2)
         # plt.legend()
     elif (psis0[0] == psis0[1]).all():
-        line_0, = ax.plot(x, np.abs(psis0[0])**2, 'g--', label=r"$\psi_0$", zorder=0)
+        line_0, = ax.plot(x, np.abs(psis0[0])**2, 'g--', label=r"$\psi_0$", zorder=2)
     elif psis0.count(psis0[0]) == 1:
         lines0 = [(ax.plot(x, np.abs(psis0[i])**2, label=r"$\psi_0$ "+str(labels[i])))[0] for i in range(len(psis))]
         # plt.legend()
@@ -142,7 +143,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
     if CAP is not None:
         lines, labels = ax.get_legend_handles_labels()
         lines2, labels2 = ax_p.get_legend_handles_labels()
-        ax_p.legend(lines + lines2, labels + labels2, loc=1)
+        ax.legend(lines + lines2, labels + labels2, loc=1)
         # ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
 
         ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
@@ -156,7 +157,6 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
 
         # finds the new values for psi
         for i in range(len(psis)):
-            # psis[i] = time_propagator(psis[i], Hamiltonians[i])
             psis[i] = time_propagator(psis[i], Hamiltonians[i])
 
         # we don't update the plot every single time step
@@ -165,6 +165,9 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
             # for i in range(len(psis)):
             #     # psis[i] = time_propagator(psis[i], Hamiltonians[i])
             #     psis[i] = time_propagator(psis0[i], Hamiltonians[i], (t)*dt)
+            
+            # if np.any(psis[i]-psis0[i] != 0.+0.j):
+            #     print("afasfsad")
 
             [lines[i].set_ydata(np.abs(psis[i])**2) for i in range(len(psis))]
             if len(analytical) > 0:
@@ -259,7 +262,7 @@ def exe_1_7(x0          = -20,
             p0          = 3,
             tau         = 5,
             L           = 100,
-            n           = 512,
+            n           = 1024,
             t_steps     = 200,
             T           = 35,
             plot_every  = 2,
@@ -271,15 +274,15 @@ def exe_1_7(x0          = -20,
     times = np.linspace(dt, T, t_steps)
 
     psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]*3
-    Hamiltonians = [make_3_point_Hamiltonian(n, h, dt)[0], make_5_point_Hamiltonian(n, h, dt)[0], make_fft_Hamiltonian(n, L,dt)[0]]
+    Hamiltonians = [make_3_point_Hamiltonian(n, h, dt)[0], make_5_point_Hamiltonian(n, h, dt)[0], make_fft_Hamiltonian(n, L, dt)[0]]
     labels       = ["3-points", "5-points", "FFT"]
     analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
     solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, analytical=analytical)
 
 
-def exe_1_8(x0          = -25,
-            x1          =  25,
+def exe_1_8(x0          = -20,
+            x1          =  20,
             sigmap      = 0.2,
             p0          = 3,
             p1          = -3,
@@ -297,7 +300,7 @@ def exe_1_8(x0          = -25,
     times = np.linspace(dt, T, t_steps)
 
     psis         = [psi_double_inital(x, x0, p0, sigmap, tau, x1, p1, sigmap, tau)]
-    Hamiltonians = [make_fft_Hamiltonian(n, L,dt)[0]]
+    Hamiltonians = [make_fft_Hamiltonian(n, L, dt)[0]]
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
@@ -565,8 +568,8 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 def exe_CAP(x0          = -30,
             sigmap      = 0.1,
             p0_min      = .3,
-            p0_max      = 6,
-            n_p0        = 100,
+            p0_max      = 8,
+            n_p0        = 200,
             tau         = 0,
             L           = 200,
             n           = 512,
@@ -588,6 +591,7 @@ def exe_CAP(x0          = -30,
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     p0s = np.linspace(p0_min, p0_max, n_p0)
+    gamma_0s = p0s * 3 / 2000
 
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
@@ -614,7 +618,7 @@ def exe_CAP(x0          = -30,
         # times       = np.linspace(dt, T, t_steps)
         # dt          = T[2] - T[1]
         psi         = [psi_single_inital(x,x0,sigmap,p0,tau)]
-        CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2)
+        CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0s[p], R = R_part*L/2)
         Hamiltonian = [make_fft_Hamiltonian(n, L,dt, V=potential  - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
 
         res_psi     = psi
@@ -725,39 +729,41 @@ def exe_CAP(x0          = -30,
     print(np.min(sums), np.max(sums), np.mean(sums), np.std(sums))
 
     print()
-    print(fininsh_l)
+    # print(fininsh_l)
 
     if animate:
         n2 = int(n_p0/2)
-        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,fininsh_l[ 0],fininsh_l[ 0]*dts[ 0],int(fininsh_l[ 0]/400),V0,w,s,d,gamma_0,R_part)
-        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,fininsh_l[n2],fininsh_l[n2]*dts[n2],int(fininsh_l[n2]/400),V0,w,s,d,gamma_0,R_part)
-        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,fininsh_l[-1],fininsh_l[-1]*dts[-1],int(fininsh_l[-1]/400),V0,w,s,d,gamma_0,R_part)
+        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,fininsh_l[ 0],fininsh_l[ 0]*dts[ 0],int(fininsh_l[ 0]/200),V0,w,s,d,gamma_0s[ 0],R_part)
+        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,fininsh_l[n2],fininsh_l[n2]*dts[n2],int(fininsh_l[n2]/200),V0,w,s,d,gamma_0s[n2],R_part)
+        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,fininsh_l[-1],fininsh_l[-1]*dts[-1],int(fininsh_l[-1]/200),V0,w,s,d,gamma_0s[-1],R_part)
         # exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
         # exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
         # exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
 
 
-def exe_CAP_anim(x0          = 30,
+def exe_CAP_anim(x0          = -30,
                  sigmap      = 0.1,
-                 p0          = -3,
+                 p0          = .3,
                  tau         = 0,
-                 L           = 150,
-                 n           = 1024,
-                 t_steps     = 1000,
-                 T0          = 1000,
-                 plot_every  = 6,
+                 L           = 200,
+                 n           = 512,
+                 t_steps     = 400,
+                 T0          = 100,
+                 plot_every  = 2,
                  V0          = 2,
-                 w           = 1,
+                 w           = .5,
                  s           = 25,
-                 d           = 4,
-                 gamma_0     = .1,
+                 d           = 2,
+                 gamma_      = .00045,
                  R_part      = .8,
                  ):
 
 
-    T = np.min(((L/4 + np.abs(x0))/np.abs(p0)*2, T0))
+    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*4, T0))
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
+
+    gamma_0 = p0 * 3 / 2000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -774,7 +780,12 @@ def exe_CAP_anim(x0          = 30,
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
     res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential, CAP=CAP[0]*np.max(potential.diagonal())/np.max(CAP[0]) )
-
+    
+    # if np.any(psis[0]-res_psii[0] != 0.+0.j):
+    #     print("afasfsad")
+        
+    # print(psis[0]-res_psii[0])
+    
     trans_loc  = np.where(x>d)[0]
     trans_prob = np.abs(res_psii[0][trans_loc])**2
     trans_pro  = np.trapz(trans_prob, x[trans_loc])
@@ -818,4 +829,4 @@ if __name__ == "__main__":
 
     print("\nCAP:")
     # exe_CAP_anim()
-    exe_CAP(animate=True)
+    exe_CAP(animate=True) 

@@ -86,6 +86,10 @@ Hfd5=-1/2*Hfd5/(12*h^2);
 Ufd3 = expm(-1i*Hfd3*dt);
 Ufd5 = expm(-1i*Hfd5*dt);
 Ufft = expm(-1i*Hfft*dt);
+%disp(Ufft)
+disp(max(abs(Ufft), [], 'all'))
+disp(min(abs(Ufft), [], 'all'))
+disp(max(abs(Ufft)-1, [], 'all'))
 
 clear Hfd3 Hfd5 Hfft;                               % Remove obsolete stuff from memory
 
