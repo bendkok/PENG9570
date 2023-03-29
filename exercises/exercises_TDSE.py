@@ -567,9 +567,9 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 
 def exe_CAP(x0          = -30,
             sigmap      = 0.1,
-            p0_min      = .3,
-            p0_max      = 8,
-            n_p0        = 200,
+            p0_min      = 1,
+            p0_max      = 7,
+            n_p0        = 100,
             tau         = 0,
             L           = 200,
             n           = 512,
@@ -603,6 +603,9 @@ def exe_CAP(x0          = -30,
     Transmission = np.zeros(len(p0s))
     Reflection   = np.zeros(len(p0s))
     Reaminader   = np.zeros(len(p0s))
+    dPl_dt       = np.zeros(len(p0s))
+    dPr_dt       = np.zeros(len(p0s))
+    dP_dt        = np.zeros(len(p0s))
 
     fininsh_l = []
 
@@ -641,11 +644,16 @@ def exe_CAP(x0          = -30,
             # if res_psi[0].shape < np.max(CAP_locs[1]):
             #     print("")
             overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(res_psi[0][CAP_locs[1]])**2, x[CAP_locs[1]])
-            overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(res_psi[0][CAP_locs[2]])**2, x[CAP_locs[2]]) 
-
+            overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(res_psi[0][CAP_locs[2]])**2, x[CAP_locs[2]])
+            
             # calculates the transmission and refflection this timestep
             Transmission[p] += overlap_R
             Reflection  [p] += overlap_L
+            
+            pis_fourier = np.sum( np.real( np.conj( sc.fft.fft(res_psi[0]) )))
+            dPr_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) ) ) * pis_fourier 
+            dPl_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) ) ) * pis_fourier 
+            dP_dt[p]   += np.sum( np.real( sc.fft.fft(CAP_vector * res_psi[0]) ) ) * pis_fourier 
 
             l+=1
             if l % stop_test == 0:
@@ -654,9 +662,6 @@ def exe_CAP(x0          = -30,
                     fininsh_l.append(l)
                     not_converged = False
                     Reaminader[p] = np.sum(np.abs(res_psi[0])**2)
-
-        Transmission[p] = Transmission[p] * dt2
-        Reflection  [p] = Reflection  [p] * dt2
 
         # exit()
         res_psi = res_psi[0]
@@ -705,7 +710,14 @@ def exe_CAP(x0          = -30,
     # loc = np.where(np.abs(x) < 3*d)[0]
     # plt.plot(x[loc], potential.diagonal()[loc], 'o--')
     # plt.show()
-
+    
+    Transmission = Transmission * dt2
+    Reflection   = Reflection   * dt2
+    
+    dPr_dt       = dPr_dt * 2
+    dPl_dt       = dPl_dt * 2
+    dP_dt        = dP_dt  * 2
+    
     sums = [Transmission[s]+Reflection[s] for s in range(len(Transmission))]
 
     plt.plot(p0s, Transmission, label="Transmission")
@@ -721,12 +733,31 @@ def exe_CAP(x0          = -30,
     title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
     plt.show()
+    
+    plt.plot(p0s, dPr_dt, label=r"$dP_r/dt$")
+    plt.plot(p0s, dPl_dt, label=r"$dP_l/dt$")
+    plt.plot(p0s, dP_dt,  label=r"$dP/dt$" )
+    # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    plt.xlabel(r"$p_0$")
+    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    plt.ylabel("p") # TODO: find better name
+    # plt.yscale("log")
+    plt.grid()
+    plt.legend()
+    title = "Double potential" if pot_2 == 1 else "Single potential"
+    title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    plt.title(title)
+    plt.show()
 
 
     # print(f"Transmission: {np.min(Transmission), np.max(Transmission)}.")
     # print(f"Reflection:   {Reflection}.")
     # print(f"Sum {sums}.")
+    print()
     print(np.min(sums), np.max(sums), np.mean(sums), np.std(sums))
+    print()
+    print("dPr_dt:", np.min(dPr_dt), np.max(dPr_dt), np.mean(dPr_dt), np.std(dPr_dt))
+    print("dPl_dt:", np.min(dPl_dt), np.max(dPl_dt), np.mean(dPl_dt), np.std(dPl_dt))
 
     print()
     # print(fininsh_l)
@@ -829,4 +860,4 @@ if __name__ == "__main__":
 
     print("\nCAP:")
     # exe_CAP_anim()
-    exe_CAP(animate=True) 
+    exe_CAP(animate=False) 
