@@ -569,7 +569,7 @@ def exe_CAP(x0          = -30,
             sigmap      = 0.1,
             p0_min      = .3,
             p0_max      = 7,
-            n_p0        = 100,
+            n_p0        = 200,
             tau         = 0,
             L           = 200,
             n           = 512,
@@ -667,6 +667,10 @@ def exe_CAP(x0          = -30,
                     not_converged = False
                     Reaminader[p] = np.sum(np.abs(res_psi[0])**2)
 
+        
+        Transmission[p] *= dt2
+        Reflection  [p] *= dt2
+        
         # exit()
         res_psi = res_psi[0]
 
@@ -715,8 +719,8 @@ def exe_CAP(x0          = -30,
     # plt.plot(x[loc], potential.diagonal()[loc], 'o--')
     # plt.show()
     
-    Transmission = Transmission * dt2
-    Reflection   = Reflection   * dt2
+    # Transmission = Transmission * dt2
+    # Reflection   = Reflection   * dt2
     
     # dPr_dt       = dPr_dt * 2
     # dPl_dt       = dPl_dt * 2
@@ -864,5 +868,5 @@ if __name__ == "__main__":
     # exe_2_4_anim()
 
     print("\nCAP:")
-    # exe_CAP_anim(pot_2=0)
-    exe_CAP(animate=False, pot_2=1) 
+    exe_CAP_anim(pot_2=1)
+    # exe_CAP(animate=False, pot_2=1) 
