@@ -114,9 +114,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         # align_yaxis(ax, ax_p, 1.3)
         # ax_p.set_ylabel("Potential")
 
-    if CAP is not None:
-        line_CAP, = ax_p.plot(x, CAP, 'r--', label="CAP")
-        # ax.set_ylim(top = np.max(np.abs(psis)**2)*1.5, bottom=-0.01)
+    # if CAP is not None:
 
 
     # plt.title("t = 0.")
@@ -141,6 +139,10 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
 
     # ask matplotlib for the plotted objects and their labels
     if CAP is not None:
+        CAP_vector, exp_CAP_vector_dt, CAP_locs = CAP
+        line_CAP, = ax_p.plot(x, CAP_vector*np.max(V.diagonal())/np.max(CAP_vector), 'r--', label="CAP")
+        # ax.set_ylim(top = np.max(np.abs(psis)**2)*1.5, bottom=-0.01)
+        
         lines, labels = ax.get_legend_handles_labels()
         lines2, labels2 = ax_p.get_legend_handles_labels()
         ax.legend(lines + lines2, labels + labels2, loc=1)
@@ -149,6 +151,16 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
         ax.patch.set_visible(False)  # hide the 'canvas'
         ax_p.patch.set_visible(True) # show the 'canvas'
+        
+        Transmission = np.zeros(len(psis))
+        Reflection   = np.zeros(len(psis))
+        Reaminader   = np.zeros(len(psis))
+        
+        dPl_dt = np.zeros(len(psis0))
+        dPr_dt = np.zeros(len(psis0))
+        dP_dt  = np.zeros(len(psis0))
+        
+        
     else:
         ax.legend()
 
@@ -158,6 +170,20 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         # finds the new values for psi
         for i in range(len(psis)):
             psis[i] = time_propagator(psis[i], Hamiltonians[i])
+            
+            if CAP is not None:
+                overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(psis[i][CAP_locs[1]])**2, x[CAP_locs[1]])
+                overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(psis[i][CAP_locs[2]])**2, x[CAP_locs[2]])
+                
+                # calculates the transmission and refflection this timestep
+                Transmission[i] += overlap_R
+                Reflection  [i] += overlap_L
+                
+                pis_fourier = np.conj( sc.fft.fft(psis[i]) )
+                dPr_dt[i]  += np.real( pis_fourier[CAP_locs[1]] @ sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
+                dPl_dt[i]  += np.real( pis_fourier[CAP_locs[2]] @ sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
+                dP_dt [i]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector[CAP_locs[0]] * psis[i][CAP_locs[0]]) )
+                
 
         # we don't update the plot every single time step
         if t % plot_every == 0:
@@ -182,7 +208,28 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
             # loop until all UI events
             # currently waiting have been processed
             figure.canvas.flush_events()
-
+    
+    if CAP is not None:
+        Transmission = [Transmission[i] * (times[2]-times[1])*2 for i in range(len(psis))]
+        Reflection   = [Reflection  [i] * (times[2]-times[1])*2 for i in range(len(psis))]
+        Reaminader   = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
+    
+        print()
+        print(f"Transmission: {Transmission}.")
+        print(f"Reflection:   {Reflection}.")
+        print(f"Sum           {[Transmission[i] + Reflection[i] for i in range(len(psis))]}.")
+        print(f"Reaminader:   {Reaminader}.", "\n")
+        
+        dPr_dt = dPr_dt * 2
+        dPl_dt = dPl_dt * 2
+        dP_dt  = dP_dt  * 2
+        
+        print()
+        print(f"dPr_dt: {dPr_dt}.")
+        print(f"dPl_dt: {dPl_dt}.")
+        print(f"Sum:    {[dPl_dt[i] + dPr_dt[i] for i in range(len(dPr_dt))]}.")
+        print(f"dP_dt:  {dP_dt}.", "\n")
+    
     return psis
 
 
@@ -603,9 +650,9 @@ def exe_CAP(x0          = -30,
     Transmission = np.zeros(len(p0s))
     Reflection   = np.zeros(len(p0s))
     Reaminader   = np.zeros(len(p0s))
-    # dPl_dt       = np.zeros(len(p0s))
-    # dPr_dt       = np.zeros(len(p0s))
-    # dP_dt        = np.zeros(len(p0s))
+    dPl_dt       = np.zeros(len(p0s))
+    dPr_dt       = np.zeros(len(p0s))
+    dP_dt        = np.zeros(len(p0s))
 
     fininsh_l = []
 
@@ -654,6 +701,10 @@ def exe_CAP(x0          = -30,
             # dPr_dt[p]  += np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) * pis_fourier[CAP_locs[1]] )
             # dPl_dt[p]  += np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) * pis_fourier[CAP_locs[2]] )
             # dP_dt[p]   += np.real( sc.fft.fft(CAP_vector * res_psi[0]) * pis_fourier )
+            pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
+            dPr_dt[p]  += np.real( pis_fourier[CAP_locs[1]] @ sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) )
+            dPl_dt[p]  += np.real( pis_fourier[CAP_locs[2]] @ sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) )
+            dP_dt [p]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector[CAP_locs[0]] * res_psi[0][CAP_locs[0]]) )
             # pis_fourier = np.sum( np.real( np.conj( sc.fft.fft(res_psi[0]) )))
             # dPr_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) ) ) * pis_fourier 
             # dPl_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) ) ) * pis_fourier 
@@ -719,12 +770,9 @@ def exe_CAP(x0          = -30,
     # plt.plot(x[loc], potential.diagonal()[loc], 'o--')
     # plt.show()
     
-    # Transmission = Transmission * dt2
-    # Reflection   = Reflection   * dt2
-    
-    # dPr_dt       = dPr_dt * 2
-    # dPl_dt       = dPl_dt * 2
-    # dP_dt        = dP_dt  * 2
+    dPr_dt       = dPr_dt * 2
+    dPl_dt       = dPl_dt * 2
+    dP_dt        = dP_dt  * 2
     
     sums = [Transmission[s]+Reflection[s] for s in range(len(Transmission))]
 
@@ -734,7 +782,7 @@ def exe_CAP(x0          = -30,
     plt.plot(p0s, Reaminader,  label="Reaminader")
     plt.xlabel(r"$p_0$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel("Probaility") # TOFO_ find better name
+    plt.ylabel("Probaility") # TODO: find better name
     plt.grid()
     plt.legend()
     title = "Double potential" if pot_2 == 1 else "Single potential"
@@ -742,20 +790,20 @@ def exe_CAP(x0          = -30,
     plt.title(title)
     plt.show()
     
-    # plt.plot(p0s, dPr_dt, label=r"$dP_r/dt$")
-    # plt.plot(p0s, dPl_dt, label=r"$dP_l/dt$")
-    # plt.plot(p0s, dP_dt,  label=r"$dP/dt$" )
-    # # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
-    # plt.xlabel(r"$p_0$")
-    # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    # plt.ylabel("p") # TODO: find better name
-    # # plt.yscale("log")
-    # plt.grid()
-    # plt.legend()
-    # title = "Double potential" if pot_2 == 1 else "Single potential"
-    # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
-    # plt.title(title)
-    # plt.show()
+    plt.plot(p0s, dPr_dt, label="Right") # label=r"$dP_r/dt$")
+    plt.plot(p0s, dPl_dt, label="Left") # label=r"$dP_l/dt$")
+    plt.plot(p0s, dP_dt,  label="Total") # label=r"$dP/dt$" )
+    # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    plt.xlabel(r"$p_0$")
+    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    plt.ylabel(r"$dP/dt$") # TODO: find better name
+    # plt.yscale("log")
+    plt.grid()
+    plt.legend()
+    title = "Double potential" if pot_2 == 1 else "Single potential"
+    title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    plt.title(title)
+    plt.show()
 
 
     # print(f"Transmission: {np.min(Transmission), np.max(Transmission)}.")
@@ -788,7 +836,7 @@ def exe_CAP_anim(x0          = -30,
                  n           = 512,
                  t_steps     = 400,
                  T0          = 100,
-                 plot_every  = 2,
+                 plot_every  = 3,
                  V0          = 2,
                  w           = .5,
                  s           = 25,
@@ -799,7 +847,7 @@ def exe_CAP_anim(x0          = -30,
                  ):
 
 
-    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*1.5, T0))
+    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*2.5, T0))
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
@@ -811,15 +859,16 @@ def exe_CAP_anim(x0          = -30,
     times = np.linspace(dt, T, t_steps)
 
     # regular_potential = rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
-    CAP = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
+    CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
     psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
-    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP[0]))[0] ] #* CAP[1]]
+    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ] #* CAP[1]]
     labels       = [r"FFT $\psi$"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential, CAP=CAP[0]*np.max(potential.diagonal())/np.max(CAP[0]) )
+    res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, 
+                                    time_propagator=Magnus_propagator, V=potential, CAP=[CAP_vector, exp_CAP_vector_dt, CAP_locs]) 
     
     # if np.any(psis[0]-res_psii[0] != 0.+0.j):
     #     print("afasfsad")
