@@ -567,7 +567,7 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 
 def exe_CAP(x0          = -30,
             sigmap      = 0.1,
-            p0_min      = 1,
+            p0_min      = .3,
             p0_max      = 7,
             n_p0        = 100,
             tau         = 0,
@@ -603,9 +603,9 @@ def exe_CAP(x0          = -30,
     Transmission = np.zeros(len(p0s))
     Reflection   = np.zeros(len(p0s))
     Reaminader   = np.zeros(len(p0s))
-    dPl_dt       = np.zeros(len(p0s))
-    dPr_dt       = np.zeros(len(p0s))
-    dP_dt        = np.zeros(len(p0s))
+    # dPl_dt       = np.zeros(len(p0s))
+    # dPr_dt       = np.zeros(len(p0s))
+    # dP_dt        = np.zeros(len(p0s))
 
     fininsh_l = []
 
@@ -622,7 +622,7 @@ def exe_CAP(x0          = -30,
         # dt          = T[2] - T[1]
         psi         = [psi_single_inital(x,x0,sigmap,p0,tau)]
         CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0s[p], R = R_part*L/2)
-        Hamiltonian = [make_fft_Hamiltonian(n, L,dt, V=potential  - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
+        Hamiltonian = [make_fft_Hamiltonian(n, L,dt, V=potential - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
 
         res_psi     = psi
         not_converged = True
@@ -650,10 +650,14 @@ def exe_CAP(x0          = -30,
             Transmission[p] += overlap_R
             Reflection  [p] += overlap_L
             
-            pis_fourier = np.sum( np.real( np.conj( sc.fft.fft(res_psi[0]) )))
-            dPr_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) ) ) * pis_fourier 
-            dPl_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) ) ) * pis_fourier 
-            dP_dt[p]   += np.sum( np.real( sc.fft.fft(CAP_vector * res_psi[0]) ) ) * pis_fourier 
+            # pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
+            # dPr_dt[p]  += np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) * pis_fourier[CAP_locs[1]] )
+            # dPl_dt[p]  += np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) * pis_fourier[CAP_locs[2]] )
+            # dP_dt[p]   += np.real( sc.fft.fft(CAP_vector * res_psi[0]) * pis_fourier )
+            # pis_fourier = np.sum( np.real( np.conj( sc.fft.fft(res_psi[0]) )))
+            # dPr_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) ) ) * pis_fourier 
+            # dPl_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) ) ) * pis_fourier 
+            # dP_dt[p]   += np.sum( np.real( sc.fft.fft(CAP_vector * res_psi[0]) ) ) * pis_fourier 
 
             l+=1
             if l % stop_test == 0:
@@ -714,9 +718,9 @@ def exe_CAP(x0          = -30,
     Transmission = Transmission * dt2
     Reflection   = Reflection   * dt2
     
-    dPr_dt       = dPr_dt * 2
-    dPl_dt       = dPl_dt * 2
-    dP_dt        = dP_dt  * 2
+    # dPr_dt       = dPr_dt * 2
+    # dPl_dt       = dPl_dt * 2
+    # dP_dt        = dP_dt  * 2
     
     sums = [Transmission[s]+Reflection[s] for s in range(len(Transmission))]
 
@@ -734,20 +738,20 @@ def exe_CAP(x0          = -30,
     plt.title(title)
     plt.show()
     
-    plt.plot(p0s, dPr_dt, label=r"$dP_r/dt$")
-    plt.plot(p0s, dPl_dt, label=r"$dP_l/dt$")
-    plt.plot(p0s, dP_dt,  label=r"$dP/dt$" )
-    # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
-    plt.xlabel(r"$p_0$")
-    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel("p") # TODO: find better name
-    # plt.yscale("log")
-    plt.grid()
-    plt.legend()
-    title = "Double potential" if pot_2 == 1 else "Single potential"
-    title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
-    plt.title(title)
-    plt.show()
+    # plt.plot(p0s, dPr_dt, label=r"$dP_r/dt$")
+    # plt.plot(p0s, dPl_dt, label=r"$dP_l/dt$")
+    # plt.plot(p0s, dP_dt,  label=r"$dP/dt$" )
+    # # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    # plt.xlabel(r"$p_0$")
+    # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    # plt.ylabel("p") # TODO: find better name
+    # # plt.yscale("log")
+    # plt.grid()
+    # plt.legend()
+    # title = "Double potential" if pot_2 == 1 else "Single potential"
+    # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    # plt.title(title)
+    # plt.show()
 
 
     # print(f"Transmission: {np.min(Transmission), np.max(Transmission)}.")
@@ -756,10 +760,10 @@ def exe_CAP(x0          = -30,
     print()
     print(np.min(sums), np.max(sums), np.mean(sums), np.std(sums))
     print()
-    print("dPr_dt:", np.min(dPr_dt), np.max(dPr_dt), np.mean(dPr_dt), np.std(dPr_dt))
-    print("dPl_dt:", np.min(dPl_dt), np.max(dPl_dt), np.mean(dPl_dt), np.std(dPl_dt))
+    # print("dPr_dt:", np.min(dPr_dt), np.max(dPr_dt), np.mean(dPr_dt), np.std(dPr_dt))
+    # print("dPl_dt:", np.min(dPl_dt), np.max(dPl_dt), np.mean(dPl_dt), np.std(dPl_dt))
 
-    print()
+    # print()
     # print(fininsh_l)
 
     if animate:
@@ -774,7 +778,7 @@ def exe_CAP(x0          = -30,
 
 def exe_CAP_anim(x0          = -30,
                  sigmap      = 0.1,
-                 p0          = .3,
+                 p0          = 1.5,
                  tau         = 0,
                  L           = 200,
                  n           = 512,
@@ -785,12 +789,13 @@ def exe_CAP_anim(x0          = -30,
                  w           = .5,
                  s           = 25,
                  d           = 2,
-                 gamma_      = .00045,
+                 gamma_      = .0045,
                  R_part      = .8,
+                 pot_2       = 1,
                  ):
 
 
-    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*4, T0))
+    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*1.5, T0))
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
@@ -803,7 +808,7 @@ def exe_CAP_anim(x0          = -30,
 
     # regular_potential = rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
     CAP = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
-    potential =  rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
+    potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
     psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP[0]))[0] ] #* CAP[1]]
@@ -859,5 +864,5 @@ if __name__ == "__main__":
     # exe_2_4_anim()
 
     print("\nCAP:")
-    # exe_CAP_anim()
-    exe_CAP(animate=False) 
+    # exe_CAP_anim(pot_2=0)
+    exe_CAP(animate=False, pot_2=1) 
