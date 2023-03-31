@@ -114,10 +114,6 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         # align_yaxis(ax, ax_p, 1.3)
         # ax_p.set_ylabel("Potential")
 
-    # if CAP is not None:
-
-
-    # plt.title("t = 0.")
 
     psis = psis0
     # plot the initial wave functions
@@ -156,9 +152,9 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         Reflection   = np.zeros(len(psis))
         Reaminader   = np.zeros(len(psis))
         
-        dPl_dt = np.zeros(len(psis0))
-        dPr_dt = np.zeros(len(psis0))
-        dP_dt  = np.zeros(len(psis0))
+        dPl_dt = np.zeros((len(psis), len(CAP_locs[2])))
+        dPr_dt = np.zeros((len(psis), len(CAP_locs[1])))
+        dP_dt  = np.zeros((len(psis), len(psis[0])))
         
         
     else:
@@ -180,9 +176,9 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
                 Reflection  [i] += overlap_L
                 
                 pis_fourier = np.conj( sc.fft.fft(psis[i]) )
-                dPr_dt[i]  += np.real( pis_fourier[CAP_locs[1]] @ sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
-                dPl_dt[i]  += np.real( pis_fourier[CAP_locs[2]] @ sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
-                dP_dt [i]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector[CAP_locs[0]] * psis[i][CAP_locs[0]]) )
+                dPr_dt[i]  += np.real( pis_fourier[CAP_locs[1]] * sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
+                dPl_dt[i]  += np.real( pis_fourier[CAP_locs[2]] * sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
+                dP_dt [i]  += np.real( pis_fourier              * sc.fft.fft(CAP_vector              * psis[i]             ) )
                 
 
         # we don't update the plot every single time step
@@ -225,10 +221,35 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         dP_dt  = dP_dt  * 2
         
         print()
-        print(f"dPr_dt: {dPr_dt}.")
-        print(f"dPl_dt: {dPl_dt}.")
-        print(f"Sum:    {[dPl_dt[i] + dPr_dt[i] for i in range(len(dPr_dt))]}.")
-        print(f"dP_dt:  {dP_dt}.", "\n")
+        # print(f"dPr_dt: {dPr_dt}.")
+        # print(f"dPl_dt: {dPl_dt}.")
+        # print(f"Sum:    {[dPl_dt[i] + dPr_dt[i] for i in range(len(dPr_dt))]}.")
+        # print(f"dP_dt:  {dP_dt}.", "\n")
+        
+        ps = sc.fft.fft(x)
+        n = len(x)
+        L = 2*np.max(x)
+        k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+        
+        figure1, ax1 = plt.subplots(figsize=(12, 8))
+        for p in range(len(psis)):
+            # ax1.plot(psis[p][CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+            # ax1.plot(psis[p][CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+            # ax1.plot(psis[p],              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
+            ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+            ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+            ax1.plot(k_fft,              dP_dt [p], label="Total") # label=r"$dP/dt$" )
+        # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+        ax1.set_xlabel(r"$p$")
+        # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+        ax1.set_ylabel(r"$dP/dt$") # TODO: find better name
+        # plt.yscale("log")
+        ax1.grid()
+        ax1.legend()
+        # title = "Double potential" if pot_2 == 1 else "Single potential"
+        # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+        # plt.title(title)
+        plt.show()
     
     return psis
 
@@ -528,9 +549,12 @@ def exe_2_4(x0          = -60,
     plt.grid()
     plt.legend()
     title = "Double potential." if pot_2 == 1 else "Single potential."
-    title = title +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    title = "2.4: " + title +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
     plt.show()
+    
+    max_diff = np.max(np.abs(np.array(trans_proability) + np.array(refle_proability) - 1))
+    print(f"Max differnce of sums from 1: {max_diff}")
 
     # plt.plot(x, np.abs(res_psi)**2)
     # plt.plot(x, potential.diagonal(), '--') # /np.max(np.abs(res_psi)**2)
@@ -550,7 +574,7 @@ def exe_2_4(x0          = -60,
 
 def exe_2_4_anim(x0          = -80,
                  sigmap      = 0.1,
-                 p0          = 0.2,
+                 p0          = 1.5,
                  tau         = 0,
                  L           = 1000,
                  n           = 1024,
@@ -597,11 +621,38 @@ def exe_2_4_anim(x0          = -80,
     # makes the plot window stay up until it is closed
     plt.ioff()
     plt.show()
+    
+    n = len(x)
+    L = 2*np.max(x)
+    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    phi = sc.fft.fft(res_psii[0])
+    
+    print(np.sum(np.abs(phi)**2))
+    
+    figure1, ax1 = plt.subplots(figsize=(12, 8))
+    # for p in range(len(psis)):
+        # ax1.plot(psis[p][CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+        # ax1.plot(psis[p][CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+        # ax1.plot(psis[p],              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
+        # ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+        # ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+    ax1.plot(k_fft, np.abs(phi)**2, label="Total") # label=r"$dP/dt$" )
+    # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    ax1.set_xlabel(r"$p$")
+    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    ax1.set_ylabel(r"$dP/dt$") # TODO: find better name
+    # plt.yscale("log")
+    ax1.grid()
+    ax1.legend()
+    # title = "Double potential" if pot_2 == 1 else "Single potential"
+    # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    # plt.title(title)
+    plt.show()
 
 
 def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 
-    CAP_locs = np.where(np.abs(x) > R) # TODO: make more efficient
+    CAP_locs = np.where(np.abs(x) > R)[0] # TODO: make more efficient
     CAP_R_locs = np.where(x >  R)[0]
     CAP_L_locs = np.where(x < -R)[0]
     Gamma_vector           = np.zeros_like(x)
@@ -632,7 +683,7 @@ def exe_CAP(x0          = -30,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
-    # h = (np.max(x)-np.min(x))/n # physical step length
+    h = (np.max(x)-np.min(x))/(n-1) # physical step length
 
     potential = rectangular_potential(x+d, V0, s, w) + pot_2*rectangular_potential(x-d, V0, s, w)
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
@@ -713,7 +764,7 @@ def exe_CAP(x0          = -30,
             l+=1
             if l % stop_test == 0:
                 # print(l)
-                if np.sum(np.abs(res_psi[0])**2) < 1e-8:
+                if np.sum(np.abs(res_psi[0])**2)*h < 1e-6:
                     fininsh_l.append(l)
                     not_converged = False
                     Reaminader[p] = np.sum(np.abs(res_psi[0])**2)
@@ -809,9 +860,12 @@ def exe_CAP(x0          = -30,
     # print(f"Transmission: {np.min(Transmission), np.max(Transmission)}.")
     # print(f"Reflection:   {Reflection}.")
     # print(f"Sum {sums}.")
-    print()
-    print(np.min(sums), np.max(sums), np.mean(sums), np.std(sums))
-    print()
+    # print()
+    # print(np.min(sums), np.max(sums), np.mean(sums), np.std(sums))
+    # print()
+    
+    max_diff = np.max(np.abs(np.array(sums) - 1))
+    print(f"Max differnce of sums from 1: {max_diff}")
     # print("dPr_dt:", np.min(dPr_dt), np.max(dPr_dt), np.mean(dPr_dt), np.std(dPr_dt))
     # print("dPl_dt:", np.min(dPl_dt), np.max(dPl_dt), np.mean(dPl_dt), np.std(dPl_dt))
 
@@ -914,8 +968,40 @@ if __name__ == "__main__":
     # print("\nExercise 2.4:")
     # exe_2_4(pot_2=1, animate=True)
     # exe_2_4(pot_2=0, animate=True)
-    # exe_2_4_anim()
+    exe_2_4_anim()
 
-    print("\nCAP:")
     exe_CAP_anim(pot_2=1)
-    # exe_CAP(animate=False, pot_2=1) 
+    # print("\nCAP single potential: ")
+    # exe_CAP(animate=False, pot_2=0, n_p0=100) 
+    # print("\nCAP double potential: ")
+    # exe_CAP(animate=False, pot_2=1, n_p0=100) 
+    # print("\nNo CAP single potential: ")
+    # exe_2_4(x0          = -30,
+    #         sigmap      = 0.1,
+    #         p0_min      = .3,
+    #         p0_max      = 7,
+    #         n_p0        = 100,
+    #         tau         = 0,
+    #         L           = 500,
+    #         n           = 1024,
+    #         V0          = 2,
+    #         w           = .5,
+    #         s           = 25,
+    #         d           = 2,
+    #         pot_2       = 0,)
+    # print("\nNo CAP double potential: ")
+    # exe_2_4(x0          = -30,
+    #         sigmap      = 0.1,
+    #         p0_min      = .3,
+    #         p0_max      = 7,
+    #         n_p0        = 100,
+    #         tau         = 0,
+    #         L           = 500,
+    #         n           = 1024,
+    #         V0          = 2,
+    #         w           = .5,
+    #         s           = 25,
+    #         d           = 2,
+    #         pot_2       = 1,)
+    
+    
