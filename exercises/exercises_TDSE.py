@@ -648,7 +648,7 @@ def exe_2_4_anim(x0          = -50,
     # print(f"array_equal: {np.array_equal(k, k_fft)}, {np.allclose(k, k_fft)}, {np.max(k-k_fft)}.")
     
     # check if it is properly normalised
-    inte = np.trapz(phi, np.fft.fftshift(k))
+    inte = np.trapz(phi, k)
     print(inte, L/n, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
     
     # print(np.sum(phi)**2)
