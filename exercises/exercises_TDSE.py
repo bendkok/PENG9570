@@ -206,8 +206,11 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
             figure.canvas.flush_events()
     
     if CAP is not None:
-        Transmission = [Transmission[i] * (times[2]-times[1])*2 for i in range(len(psis))]
-        Reflection   = [Reflection  [i] * (times[2]-times[1])*2 for i in range(len(psis))]
+        
+        dt = times[2]-times[1]
+        
+        Transmission = [Transmission[i] * 2 * dt for i in range(len(psis))]
+        Reflection   = [Reflection  [i] * 2 * dt for i in range(len(psis))]
         Reaminader   = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
     
         print()
@@ -216,9 +219,9 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         print(f"Sum           {[Transmission[i] + Reflection[i] for i in range(len(psis))]}.")
         print(f"Reaminader:   {Reaminader}.", "\n")
         
-        dPr_dt = dPr_dt * 2
-        dPl_dt = dPl_dt * 2
-        dP_dt  = dP_dt  * 2
+        dPr_dt = dPr_dt * 2 * dt
+        dPl_dt = dPl_dt * 2 * dt
+        dP_dt  = dP_dt  * 2 * dt
         
         print()
         # print(f"dPr_dt: {dPr_dt}.")
@@ -230,15 +233,23 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         n = len(x)
         L = 2*np.max(x)
         k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+        k = np.fft.fftshift(sc.fft.fftfreq(n, d=(x[2]-x[1])))
+        
+        # check if it is properly normalised
+        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k) for p in range(len(psis))]
+        print(inte, n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
         
         figure1, ax1 = plt.subplots(figsize=(12, 8))
         for p in range(len(psis)):
-            # ax1.plot(psis[p][CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-            # ax1.plot(psis[p][CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-            # ax1.plot(psis[p],              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
-            ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-            ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-            ax1.plot(k_fft,              dP_dt [p], label="Total") # label=r"$dP/dt$" )
+            # ax1.plot(ps[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+            # ax1.plot(ps[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+            # ax1.plot(ps,              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
+            # ax1.plot(np.abs(ps[CAP_locs[1]])**2, dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+            # ax1.plot(np.abs(ps[CAP_locs[2]])**2, dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+            # ax1.plot(np.abs(ps)**2,              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
+            # ax1.plot(k[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
+            # ax1.plot(k[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
+            ax1.plot(k,              np.fft.fftshift(dP_dt) [p]/inte, label="Total") # label=r"$dP/dt$" )
         # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
         ax1.set_xlabel(r"$p$")
         # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
@@ -247,8 +258,8 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         ax1.grid()
         ax1.legend()
         # title = "Double potential" if pot_2 == 1 else "Single potential"
-        # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
-        # plt.title(title)
+        title = "Velocity density function with CAP." # +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+        plt.title(title)
         plt.show()
     
     return psis
@@ -572,27 +583,32 @@ def exe_2_4(x0          = -60,
         exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),1,V0,w,s,d)
 
 
-def exe_2_4_anim(x0          = -80,
+def exe_2_4_anim(x0          = -50,
                  sigmap      = 0.1,
                  p0          = 1.5,
                  tau         = 0,
-                 L           = 1000,
+                 L           = 500,
                  n           = 1024,
                  t_steps     = 1000,
-                 T           = 1000,
-                 plot_every  = 2,
-                 V0          = 3,
+                 T0          = 1000,
+                 plot_every  = 8,
+                 V0          = 2,
                  w           = 1,
                  s           = 25,
-                 d           = 5,
+                 d           = 2,
+                 pot_2       = 1,
                  ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
+    
+    T = (L/4 - x0)/(p0)
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    potential = rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
+    potential = rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
+    
+    print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L,dt, V=potential)[0]]
@@ -624,10 +640,18 @@ def exe_2_4_anim(x0          = -80,
     
     n = len(x)
     L = 2*np.max(x)
-    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-    phi = sc.fft.fft(res_psii[0])
+    # k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    phi = np.abs(np.fft.fftshift(sc.fft.fft(res_psii[0])))**2
+    # phi = np.abs(sc.fft.fft(res_psii[0]))**2
+    k = sc.fft.fftfreq(n, d=(x[2]-x[1]))
     
-    print(np.sum(np.abs(phi)**2))
+    # print(f"array_equal: {np.array_equal(k, k_fft)}, {np.allclose(k, k_fft)}, {np.max(k-k_fft)}.")
+    
+    # check if it is properly normalised
+    inte = np.trapz(phi, k)
+    print(inte, L/n, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
+    
+    # print(np.sum(phi)**2)
     
     figure1, ax1 = plt.subplots(figsize=(12, 8))
     # for p in range(len(psis)):
@@ -636,7 +660,8 @@ def exe_2_4_anim(x0          = -80,
         # ax1.plot(psis[p],              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
         # ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
         # ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-    ax1.plot(k_fft, np.abs(phi)**2, label="Total") # label=r"$dP/dt$" )
+    # ax1.plot(k_fft, phi, label="Total") # label=r"$dP/dt$" )
+    ax1.plot(np.fft.fftshift(k)/inte, phi, label="Total") # label=r"$dP/dt$" )
     # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
@@ -645,9 +670,10 @@ def exe_2_4_anim(x0          = -80,
     ax1.grid()
     ax1.legend()
     # title = "Double potential" if pot_2 == 1 else "Single potential"
-    # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
-    # plt.title(title)
+    title = title = "Velocity density function without CAP." # title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    plt.title(title)
     plt.show()
+    
 
 
 def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
@@ -755,7 +781,8 @@ def exe_CAP(x0          = -30,
             pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
             dPr_dt[p]  += np.real( pis_fourier[CAP_locs[1]] @ sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) )
             dPl_dt[p]  += np.real( pis_fourier[CAP_locs[2]] @ sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) )
-            dP_dt [p]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector[CAP_locs[0]] * res_psi[0][CAP_locs[0]]) )
+            # dP_dt [p]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector[CAP_locs[0]] * res_psi[0][CAP_locs[0]]) )
+            dP_dt [p]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector * res_psi[0]) )
             # pis_fourier = np.sum( np.real( np.conj( sc.fft.fft(res_psi[0]) )))
             # dPr_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) ) ) * pis_fourier 
             # dPl_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) ) ) * pis_fourier 
@@ -882,17 +909,17 @@ def exe_CAP(x0          = -30,
         # exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
 
 
-def exe_CAP_anim(x0          = -30,
+def exe_CAP_anim(x0          = -50,
                  sigmap      = 0.1,
                  p0          = 1.5,
                  tau         = 0,
-                 L           = 200,
-                 n           = 512,
+                 L           = 500,
+                 n           = 1024,
                  t_steps     = 400,
                  T0          = 100,
-                 plot_every  = 3,
+                 plot_every  = 2,
                  V0          = 2,
-                 w           = .5,
+                 w           = 1,
                  s           = 25,
                  d           = 2,
                  gamma_      = .0045,
@@ -905,7 +932,7 @@ def exe_CAP_anim(x0          = -30,
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
-    gamma_0 = p0 * 3 / 2000
+    gamma_0 = p0 * 2 / 2000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -968,7 +995,7 @@ if __name__ == "__main__":
     # print("\nExercise 2.4:")
     # exe_2_4(pot_2=1, animate=True)
     # exe_2_4(pot_2=0, animate=True)
-    exe_2_4_anim()
+    exe_2_4_anim(pot_2=1)
 
     exe_CAP_anim(pot_2=1)
     # print("\nCAP single potential: ")
