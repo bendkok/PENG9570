@@ -641,14 +641,14 @@ def exe_2_4_anim(x0          = -50,
     n = len(x)
     L = 2*np.max(x)
     # k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-    phi = np.abs(np.fft.fftshift(sc.fft.fft(res_psii[0])))**2
+    phi = np.fft.fftshift(np.abs(sc.fft.fft(res_psii[0]))**2)
     # phi = np.abs(sc.fft.fft(res_psii[0]))**2
     k = sc.fft.fftfreq(n, d=(x[2]-x[1]))
     
     # print(f"array_equal: {np.array_equal(k, k_fft)}, {np.allclose(k, k_fft)}, {np.max(k-k_fft)}.")
     
     # check if it is properly normalised
-    inte = np.trapz(phi, k)
+    inte = np.trapz(phi, np.fft.fftshift(k))
     print(inte, L/n, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
     
     # print(np.sum(phi)**2)
@@ -661,7 +661,7 @@ def exe_2_4_anim(x0          = -50,
         # ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
         # ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
     # ax1.plot(k_fft, phi, label="Total") # label=r"$dP/dt$" )
-    ax1.plot(np.fft.fftshift(k)/inte, phi, label="Total") # label=r"$dP/dt$" )
+    ax1.plot(np.fft.fftshift(k), phi, label="Total") # label=r"$dP/dt$" )
     # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
