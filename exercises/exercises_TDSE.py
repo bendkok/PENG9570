@@ -9,6 +9,7 @@ import numpy as np
 import scipy as sc
 import scipy.sparse as sp
 import scipy.linalg as sl
+import scipy.integrate as si
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -19,7 +20,13 @@ sns.set_theme(style="dark") # nice plots
 
 def psi_single_inital(x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
     # Initial value for a wave function with one Gaussian wave
-    return np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
+    # return np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
+    
+    term0 = np.sqrt(2/np.pi) * sigmap / (1 - 2j*sigmap**2 * tau)
+    term1 = sigmap**2 * (x - x0)**2 / (1 - 2j * sigmap**2 * tau) 
+    term2 = 1j * p0 * x
+    psi0 = np.sqrt(term0) * np.exp(- term1 + term2)
+    return psi0 
 
 
 def psi_single_analytical(t, x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
@@ -232,12 +239,26 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         ps = sc.fft.fft(x)
         n = len(x)
         L = 2*np.max(x)
+        dx = (np.max(x)-np.min(x))/(n-1)
         k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-        k = np.fft.fftshift(sc.fft.fftfreq(n, d=(x[2]-x[1])))
+        k_fft = np.fft.fftshift(k_fft)
+        k = np.fft.fftshift( sc.fft.fftfreq(n, d=(x[2]-x[1])) ) # 2*(np.pi/L) *
         
         # check if it is properly normalised
-        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k) for p in range(len(psis))]
-        print(inte, n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
+        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k*(2*np.pi)) for p in range(len(psis))]
+        print(inte)
+        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k/(2*np.pi)) for p in range(len(psis))]
+        print(inte)
+        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k_fft) for p in range(len(psis))]
+        print(inte, n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt, n, L)
+        print(x[2]-x[1], dx)
+        
+        
+        peaks = sc.signal.find_peaks(np.fft.fftshift(dP_dt)[0], height=0.9)
+        print()
+        print(peaks)
+        print(np.fft.fftshift(dP_dt)[0][peaks[0]])
+        print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]*(2*np.pi), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
         
         figure1, ax1 = plt.subplots(figsize=(12, 8))
         for p in range(len(psis)):
@@ -249,7 +270,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
             # ax1.plot(np.abs(ps)**2,              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
             # ax1.plot(k[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
             # ax1.plot(k[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-            ax1.plot(k,              np.fft.fftshift(dP_dt) [p]/inte, label="Total") # label=r"$dP/dt$" )
+            ax1.plot(k_fft,              np.fft.fftshift(dP_dt) [p], label="Total") # label=r"$dP/dt$" ) # /inte
         # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
         ax1.set_xlabel(r"$p$")
         # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
@@ -587,7 +608,7 @@ def exe_2_4_anim(x0          = -50,
                  sigmap      = 0.1,
                  p0          = 1.5,
                  tau         = 0,
-                 L           = 500,
+                 L           = 1024,
                  n           = 1024,
                  t_steps     = 1000,
                  T0          = 1000,
@@ -642,16 +663,51 @@ def exe_2_4_anim(x0          = -50,
     L = 2*np.max(x)
     # k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
     phi = np.fft.fftshift(np.abs(sc.fft.fft(res_psii[0]))**2)
+    # phi = np.fft.fftshift(np.abs(sc.fft.fft(res_psii[0]))**2)
     # phi = np.abs(sc.fft.fft(res_psii[0]))**2
-    k = sc.fft.fftfreq(n, d=(x[2]-x[1]))
+    # k = np.fft.fftshift(sc.fft.fftfreq(n, d=(x[2]-x[1])))
     
     # print(f"array_equal: {np.array_equal(k, k_fft)}, {np.allclose(k, k_fft)}, {np.max(k-k_fft)}.")
     
     # check if it is properly normalised
-    inte = np.trapz(phi, k)
-    print(inte, L/n, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
+    # inte = np.trapz(phi, k)
+    # print()
+    # print(inte, L/n, dt, 1/dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
+    print()
+    # print(np.sum(np.abs(psis[0])**2)) 
+    # print(np.sum(np.abs(res_psii[0])**2))
+    
+    # N = si.simpson( np.abs(res_psii[0])**2, x)
+    # print(N, np.sqrt(N), N**2)
     
     # print(np.sum(phi)**2)
+    
+    dx = (np.max(x)-np.min(x))/(n-1)
+    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    k_fft = np.fft.fftshift(k_fft)
+    # k = np.fft.fftshift(sc.fft.fftfreq(n, d=(x[2]-x[1]))) # 2*(np.pi/L) *
+    k = np.fft.fftshift(sc.fft.fftfreq(n, d=1/dx)) # 2*(np.pi/L) *
+    
+    # check if it is properly normalised
+    # inte  = si.simpson(phi, k*(2*np.pi)) 
+    # print(inte)
+    # inte  = si.simpson(phi, k/(2*np.pi)) 
+    # print(inte)
+    inte  = si.simpson(phi, k) 
+    print(inte)
+    inte  = si.simpson(phi, k_fft) 
+    print(inte)
+    print(n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt, n, L)
+    print(x[2]-x[1], dx, 1/dx)
+    
+    
+    peaks = sc.signal.find_peaks(phi, height=0.9)
+    print()
+    print(peaks)
+    print(phi[peaks[0]])
+    print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]**1/2, k[peaks[0]]*(2*np.pi), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
+    
+    # print(k_fft)
     
     figure1, ax1 = plt.subplots(figsize=(12, 8))
     # for p in range(len(psis)):
@@ -660,8 +716,10 @@ def exe_2_4_anim(x0          = -50,
         # ax1.plot(psis[p],              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
         # ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
         # ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-    # ax1.plot(k_fft, phi, label="Total") # label=r"$dP/dt$" )
-    ax1.plot(np.fft.fftshift(k), phi, label="Total") # label=r"$dP/dt$" )
+    ax1.plot(k, phi, label="k") # label=r"$dP/dt$" )
+    ax1.plot(k*2*np.pi/dx, phi, label="k*2*np.pi/dx") # label=r"$dP/dt$" )
+    # ax1.plot(np.fft.fftshift(k_fft), np.fft.fftshift(phi), label="Total") # label=r"$dP/dt$" )
+    ax1.plot(k_fft, phi, label="k_fft") # label=r"$dP/dt$" )
     # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
@@ -911,11 +969,11 @@ def exe_CAP(x0          = -30,
 
 def exe_CAP_anim(x0          = -50,
                  sigmap      = 0.1,
-                 p0          = 1.5,
+                 p0          = 2,
                  tau         = 0,
-                 L           = 500,
-                 n           = 1024,
-                 t_steps     = 400,
+                 L           = 200,
+                 n           = 512,
+                 t_steps     = 200,
                  T0          = 100,
                  plot_every  = 2,
                  V0          = 2,
@@ -997,7 +1055,7 @@ if __name__ == "__main__":
     # exe_2_4(pot_2=0, animate=True)
     exe_2_4_anim(pot_2=1)
 
-    exe_CAP_anim(pot_2=1)
+    # exe_CAP_anim(pot_2=1)
     # print("\nCAP single potential: ")
     # exe_CAP(animate=False, pot_2=0, n_p0=100) 
     # print("\nCAP double potential: ")
