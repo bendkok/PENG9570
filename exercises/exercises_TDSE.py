@@ -608,7 +608,7 @@ def exe_2_4_anim(x0          = -50,
                  sigmap      = 0.1,
                  p0          = 1.5,
                  tau         = 0,
-                 L           = 1024,
+                 L           = 512,
                  n           = 1024,
                  t_steps     = 1000,
                  T0          = 1000,
@@ -705,7 +705,7 @@ def exe_2_4_anim(x0          = -50,
     print()
     print(peaks)
     print(phi[peaks[0]])
-    print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]**1/2, k[peaks[0]]*(2*np.pi), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
+    print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]*(2*np.pi/dx), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
     
     # print(k_fft)
     
@@ -719,7 +719,7 @@ def exe_2_4_anim(x0          = -50,
     ax1.plot(k, phi, label="k") # label=r"$dP/dt$" )
     ax1.plot(k*2*np.pi/dx, phi, label="k*2*np.pi/dx") # label=r"$dP/dt$" )
     # ax1.plot(np.fft.fftshift(k_fft), np.fft.fftshift(phi), label="Total") # label=r"$dP/dt$" )
-    ax1.plot(k_fft, phi, label="k_fft") # label=r"$dP/dt$" )
+    ax1.plot(k_fft, phi, '--', label="k_fft") # label=r"$dP/dt$" )
     # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
