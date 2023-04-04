@@ -606,9 +606,9 @@ def exe_2_4(x0          = -60,
 
 def exe_2_4_anim(x0          = -50,
                  sigmap      = 0.1,
-                 p0          = 1.5,
+                 p0          = 2,
                  tau         = 0,
-                 L           = 512,
+                 L           = 500,
                  n           = 1024,
                  t_steps     = 1000,
                  T0          = 1000,
@@ -695,6 +695,8 @@ def exe_2_4_anim(x0          = -50,
     # print(inte)
     inte  = si.simpson(phi, k) 
     print(inte)
+    inte  = si.simpson(phi, k*2*np.pi/dx**2) 
+    print(inte)
     inte  = si.simpson(phi, k_fft) 
     print(inte)
     print(n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt, n, L)
@@ -705,7 +707,7 @@ def exe_2_4_anim(x0          = -50,
     print()
     print(peaks)
     print(phi[peaks[0]])
-    print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]*(2*np.pi/dx), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
+    print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]*(2*np.pi/dx**2), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
     
     # print(k_fft)
     
@@ -717,13 +719,14 @@ def exe_2_4_anim(x0          = -50,
         # ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
         # ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
     ax1.plot(k, phi, label="k") # label=r"$dP/dt$" )
-    ax1.plot(k*2*np.pi/dx, phi, label="k*2*np.pi/dx") # label=r"$dP/dt$" )
+    ax1.plot(k*2*np.pi/dx**2, phi, label="k*2*np.pi/dx**2") # label=r"$dP/dt$" )
     # ax1.plot(np.fft.fftshift(k_fft), np.fft.fftshift(phi), label="Total") # label=r"$dP/dt$" )
-    ax1.plot(k_fft, phi, '--', label="k_fft") # label=r"$dP/dt$" )
+    # ax1.plot(k_fft, phi, '--', label="k_fft") # label=r"$dP/dt$" )
     # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
     ax1.set_ylabel(r"$dP/dt$") # TODO: find better name
+    ax1.set_xlim((-3,3))
     # plt.yscale("log")
     ax1.grid()
     ax1.legend()
