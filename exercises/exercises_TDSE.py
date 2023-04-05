@@ -145,6 +145,10 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         CAP_vector, exp_CAP_vector_dt, CAP_locs = CAP
         line_CAP, = ax_p.plot(x, CAP_vector*np.max(V.diagonal())/np.max(CAP_vector), 'r--', label="CAP")
         # ax.set_ylim(top = np.max(np.abs(psis)**2)*1.5, bottom=-0.01)
+        CAP_vector_r = np.zeros_like(CAP_vector)
+        CAP_vector_l = np.zeros_like(CAP_vector)
+        CAP_vector_r[CAP_locs[1]] = CAP_vector[CAP_locs[1]]
+        CAP_vector_l[CAP_locs[2]] = CAP_vector[CAP_locs[2]]
         
         lines, labels = ax.get_legend_handles_labels()
         lines2, labels2 = ax_p.get_legend_handles_labels()
@@ -159,8 +163,10 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         Reflection   = np.zeros(len(psis))
         Reaminader   = np.zeros(len(psis))
         
-        dPl_dt = np.zeros((len(psis), len(CAP_locs[2])))
-        dPr_dt = np.zeros((len(psis), len(CAP_locs[1])))
+        # dPl_dt = np.zeros((len(psis), len(CAP_locs[2])))
+        # dPr_dt = np.zeros((len(psis), len(CAP_locs[1])))
+        dPl_dt = np.zeros((len(psis), len(psis[0])))
+        dPr_dt = np.zeros((len(psis), len(psis[0])))
         dP_dt  = np.zeros((len(psis), len(psis[0])))
         
         
@@ -183,9 +189,11 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
                 Reflection  [i] += overlap_L
                 
                 pis_fourier = np.conj( sc.fft.fft(psis[i]) )
-                dPr_dt[i]  += np.real( pis_fourier[CAP_locs[1]] * sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
-                dPl_dt[i]  += np.real( pis_fourier[CAP_locs[2]] * sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
-                dP_dt [i]  += np.real( pis_fourier              * sc.fft.fft(CAP_vector              * psis[i]             ) )
+                # dPr_dt[i][CAP_locs[1]] += np.real( pis_fourier[CAP_locs[1]] * sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
+                # dPl_dt[i][CAP_locs[2]] += np.real( pis_fourier[CAP_locs[2]] * sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
+                dPr_dt[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_r * psis[i]) )
+                dPl_dt[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_l * psis[i]) )
+                dP_dt [i] += np.real( pis_fourier * sc.fft.fft(CAP_vector   * psis[i]) )
                 
 
         # we don't update the plot every single time step
@@ -226,9 +234,15 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         print(f"Sum           {[Transmission[i] + Reflection[i] for i in range(len(psis))]}.")
         print(f"Reaminader:   {Reaminader}.", "\n")
         
-        dPr_dt = dPr_dt * 2 * dt
-        dPl_dt = dPl_dt * 2 * dt
-        dP_dt  = dP_dt  * 2 * dt
+        n = len(x)
+        L = 2*np.max(x)
+        dx = (np.max(x)-np.min(x))/(n-1)
+        
+        dPr_dt = dPr_dt * 2 * dt * dx**2 / (2*np.pi)
+        dPl_dt = dPl_dt * 2 * dt * dx**2 / (2*np.pi)
+        dP_dt  = dP_dt  * 2 * dt * dx**2 / (2*np.pi)
+        
+        phi2 = [np.fft.fftshift(i) for i in dP_dt]
         
         print()
         # print(f"dPr_dt: {dPr_dt}.")
@@ -236,45 +250,27 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         # print(f"Sum:    {[dPl_dt[i] + dPr_dt[i] for i in range(len(dPr_dt))]}.")
         # print(f"dP_dt:  {dP_dt}.", "\n")
         
-        ps = sc.fft.fft(x)
-        n = len(x)
-        L = 2*np.max(x)
-        dx = (np.max(x)-np.min(x))/(n-1)
         k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
         k_fft = np.fft.fftshift(k_fft)
-        k = np.fft.fftshift( sc.fft.fftfreq(n, d=(x[2]-x[1])) ) # 2*(np.pi/L) *
+        # k = np.fft.fftshift( sc.fft.fftfreq(n, d=(x[2]-x[1])) ) # 2*(np.pi/L) *
         
         # check if it is properly normalised
-        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k*(2*np.pi)) for p in range(len(psis))]
-        print(inte)
-        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k/(2*np.pi)) for p in range(len(psis))]
-        print(inte)
-        inte  = [np.trapz(np.fft.fftshift(dP_dt)[p], k_fft) for p in range(len(psis))]
-        print(inte, n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt, n, L)
-        print(x[2]-x[1], dx)
+        inte  = [np.trapz(phi2[p], k_fft) for p in range(len(psis))]
+        print("Norm with manual k-vector: ", inte) # should be ~1
         
-        
-        peaks = sc.signal.find_peaks(np.fft.fftshift(dP_dt)[0], height=0.9)
+        peaks = sc.signal.find_peaks(phi2[0], height=0.9)
         print()
-        print(peaks)
-        print(np.fft.fftshift(dP_dt)[0][peaks[0]])
-        print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]*(2*np.pi), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
+        print(f"Peak values: {phi2[0][peaks[0]]}.")
+        print(f"Peak locs:   {k_fft[peaks[0]]}.", '\n') # " p0 = {p0}.", '\n')
         
         figure1, ax1 = plt.subplots(figsize=(12, 8))
         for p in range(len(psis)):
-            # ax1.plot(ps[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-            # ax1.plot(ps[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-            # ax1.plot(ps,              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
-            # ax1.plot(np.abs(ps[CAP_locs[1]])**2, dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-            # ax1.plot(np.abs(ps[CAP_locs[2]])**2, dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-            # ax1.plot(np.abs(ps)**2,              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
-            # ax1.plot(k[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-            # ax1.plot(k[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-            ax1.plot(k_fft,              np.fft.fftshift(dP_dt) [p], label="Total") # label=r"$dP/dt$" ) # /inte
-        # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+            ax1.plot(k_fft, np.fft.fftshift(dPr_dt)[p], '--', label="Right") # label=r"$dP_r/dt$")
+            ax1.plot(k_fft, np.fft.fftshift(dPl_dt)[p], '--', label="Left") # label=r"$dP_l/dt$")
+            ax1.plot(k_fft,                    phi2[p],       label="Total") # label=r"$dP/dt$" ) # /inte
         ax1.set_xlabel(r"$p$")
         # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-        ax1.set_ylabel(r"$dP/dt$") # TODO: find better name
+        ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
         # plt.yscale("log")
         ax1.grid()
         ax1.legend()
@@ -437,14 +433,14 @@ def exe_2_1(x0          = -50,
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential)
+    res_psi = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential)
 
     trans_loc  = np.where(x>0)[0]
-    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_prob = np.abs(res_psi[0][trans_loc])**2
     trans_pro  = np.trapz(trans_prob, x[trans_loc])
 
     refle_loc  = np.where(x<=0)[0]
-    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_prob = np.abs(res_psi[0][refle_loc])**2
     refle_pro  = np.trapz(refle_prob, x[refle_loc])
 
     print(f"Transmission probability: {trans_pro}.")
@@ -482,14 +478,14 @@ def exe_2_3(x0          = -50,
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential)
+    res_psi = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential)
 
     trans_loc  = np.where(x>0)[0]
-    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_prob = np.abs(res_psi[0][trans_loc])**2
     trans_pro  = np.trapz(trans_prob, x[trans_loc])
 
     refle_loc  = np.where(x<=0)[0]
-    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_prob = np.abs(res_psi[0][refle_loc])**2
     refle_pro  = np.trapz(refle_prob, x[refle_loc])
 
     print(f"Transmission probability: {trans_pro}.")
@@ -528,7 +524,7 @@ def exe_2_4(x0          = -60,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
-    h = (np.max(x)-np.min(x))/n # physical step length
+    # h = (np.max(x)-np.min(x))/n # physical step length
 
     potential = rectangular_potential(x+d, V0, s, w) + pot_2*rectangular_potential(x-d, V0, s, w)
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
@@ -538,10 +534,22 @@ def exe_2_4(x0          = -60,
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
 
-    trans_proability = []
-    trap_proability  = []
-    refle_proability = []
+    trans_proability = np.zeros(len(p0s))
+    trap_proability  = np.zeros(len(p0s))
+    refle_proability = np.zeros(len(p0s))
 
+    trans_loc  = np.where(x>d)[0]
+    trap_loc   = np.where(np.abs(x)<d)[0]
+    refle_loc  = np.where(x<=-d)[0]
+    
+    n = len(x)
+    L = 2*np.max(x)
+    dx = (np.max(x)-np.min(x))/(n-1)
+    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    k_fft = np.fft.fftshift(k_fft)
+    phi2s = np.zeros((len(p0s), len(x)))
+    norms = np.zeros(len(p0s))
+    
     for p in tqdm(range(len(p0s))):
 
         p0 = p0s[p]
@@ -550,18 +558,22 @@ def exe_2_4(x0          = -60,
 
         res_psi = solve_no_plotting(psi, Hamiltonian)[0]
 
-        trans_loc  = np.where(x>d)[0]
         trans_prob = np.abs(res_psi[trans_loc])**2
-        trans_proability.append( np.trapz(trans_prob, x[trans_loc]) )
+        trans_proability[p] = np.trapz(trans_prob, x[trans_loc])
 
-        trap_loc   = np.where(np.abs(x)<d)[0]
         trap_prob  = np.abs(res_psi[trap_loc])**2
-        trap_proability.append(  np.trapz(trap_prob, x[trap_loc]))
+        trap_proability [p] =   np.trapz(trap_prob, x[trap_loc])
 
-        refle_loc  = np.where(x<=-d)[0]
         refle_prob = np.abs(res_psi[refle_loc])**2
-        refle_proability.append(  np.trapz(refle_prob, x[refle_loc]) )
-
+        refle_proability[p] = np.trapz(refle_prob, x[refle_loc]) 
+        
+        phi2s[p] = np.fft.fftshift(np.abs(sc.fft.fft(res_psi))**2) 
+        # norms[p] = si.simpson(phi2s[p], k_fft) 
+        
+    phi2s = phi2s * dx**2 / (2*np.pi)
+    for p in tqdm(range(len(p0s))):
+        norms[p] = si.simpson(phi2s[p], k_fft) 
+    
     # print(f"Transmission probability: {trans_pro}.")
     # print(f"Reflection probability:   {refle_pro}.")
     # print(f"Trapped probability:      {trap_pro}.")
@@ -587,6 +599,17 @@ def exe_2_4(x0          = -60,
     
     max_diff = np.max(np.abs(np.array(trans_proability) + np.array(refle_proability) - 1))
     print(f"Max differnce of sums from 1: {max_diff}")
+    
+    
+    # check if it is properly normalised
+    print(f"Max norm: {np.max(norms)}. Min norm: {np.min(norms)}.") # should be ~1
+    X,Y = np.meshgrid(p0s, k_fft)
+    plt.contourf(X,Y, phi2s.T, norm="log")
+    plt.xlabel(r"$p_0$")
+    plt.ylabel(r"$k$")
+    plt.colorbar(label=r"$dP/dt$")
+    plt.show()
+    
 
     # plt.plot(x, np.abs(res_psi)**2)
     # plt.plot(x, potential.diagonal(), '--') # /np.max(np.abs(res_psi)**2)
@@ -606,10 +629,10 @@ def exe_2_4(x0          = -60,
 
 def exe_2_4_anim(x0          = -50,
                  sigmap      = 0.1,
-                 p0          = 2,
+                 p0          = 1.8,
                  tau         = 0,
-                 L           = 500,
-                 n           = 1024,
+                 L           = 700,
+                 n           = 2048,
                  t_steps     = 1000,
                  T0          = 1000,
                  plot_every  = 8,
@@ -636,18 +659,18 @@ def exe_2_4_anim(x0          = -50,
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential)
+    res_psi = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, time_propagator=Magnus_propagator, V=potential)
 
     trans_loc  = np.where(x>d)[0]
-    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_prob = np.abs(res_psi[0][trans_loc])**2
     trans_pro  = np.trapz(trans_prob, x[trans_loc])
 
     trap_loc   = np.where(np.abs(x)<d)[0]
-    trap_prob  = np.abs(res_psii[0][trap_loc])**2
+    trap_prob  = np.abs(res_psi[0][trap_loc])**2
     trap_pro   = np.trapz(trap_prob, x[trap_loc])
 
     refle_loc  = np.where(x<=-d)[0]
-    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_prob = np.abs(res_psi[0][refle_loc])**2
     refle_pro  = np.trapz(refle_prob, x[refle_loc])
 
     print(f"Transmission probability: {trans_pro}.")
@@ -661,71 +684,27 @@ def exe_2_4_anim(x0          = -50,
     
     n = len(x)
     L = 2*np.max(x)
-    # k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-    phi = np.fft.fftshift(np.abs(sc.fft.fft(res_psii[0]))**2)
-    # phi = np.fft.fftshift(np.abs(sc.fft.fft(res_psii[0]))**2)
-    # phi = np.abs(sc.fft.fft(res_psii[0]))**2
-    # k = np.fft.fftshift(sc.fft.fftfreq(n, d=(x[2]-x[1])))
-    
-    # print(f"array_equal: {np.array_equal(k, k_fft)}, {np.allclose(k, k_fft)}, {np.max(k-k_fft)}.")
-    
-    # check if it is properly normalised
-    # inte = np.trapz(phi, k)
-    # print()
-    # print(inte, L/n, dt, 1/dt, 2*n/L, 2*n/L*dt, 2*n/L/dt)
-    print()
-    # print(np.sum(np.abs(psis[0])**2)) 
-    # print(np.sum(np.abs(res_psii[0])**2))
-    
-    # N = si.simpson( np.abs(res_psii[0])**2, x)
-    # print(N, np.sqrt(N), N**2)
-    
-    # print(np.sum(phi)**2)
-    
     dx = (np.max(x)-np.min(x))/(n-1)
+    phi2 = np.fft.fftshift(np.abs(sc.fft.fft(res_psi[0]))**2) * dx**2 / (2*np.pi)
+        
     k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
     k_fft = np.fft.fftshift(k_fft)
-    # k = np.fft.fftshift(sc.fft.fftfreq(n, d=(x[2]-x[1]))) # 2*(np.pi/L) *
-    k = np.fft.fftshift(sc.fft.fftfreq(n, d=1/dx)) # 2*(np.pi/L) *
     
     # check if it is properly normalised
-    # inte  = si.simpson(phi, k*(2*np.pi)) 
-    # print(inte)
-    # inte  = si.simpson(phi, k/(2*np.pi)) 
-    # print(inte)
-    inte  = si.simpson(phi, k) 
-    print(inte)
-    inte  = si.simpson(phi, k*2*np.pi/dx**2) 
-    print(inte)
-    inte  = si.simpson(phi, k_fft) 
-    print(inte)
-    print(n/L, dt, 2*n/L, 2*n/L*dt, 2*n/L/dt, n, L)
-    print(x[2]-x[1], dx, 1/dx)
+    inte  = si.simpson(phi2, k_fft) 
+    print("Norm with manual k-vector: ", inte) # should be ~1
     
-    
-    peaks = sc.signal.find_peaks(phi, height=0.9)
+    # we find the peaks values
+    peaks = sc.signal.find_peaks(phi2, height=np.max(phi2)*0.05)
     print()
-    print(peaks)
-    print(phi[peaks[0]])
-    print(k_fft[peaks[0]], k[peaks[0]], k[peaks[0]]*(2*np.pi/dx**2), 2*(np.pi/L)*k[peaks[0]], np.pi*k[peaks[0]]/(x[2]-x[1]), "\n")
-    
-    # print(k_fft)
+    print(f"Peak values: {phi2[peaks[0]]}.")
+    print(f"Peak locs:   {k_fft[peaks[0]]}. p0 = {p0}.", '\n')
     
     figure1, ax1 = plt.subplots(figsize=(12, 8))
-    # for p in range(len(psis)):
-        # ax1.plot(psis[p][CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-        # ax1.plot(psis[p][CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-        # ax1.plot(psis[p],              dP_dt[p],  label="Total") # label=r"$dP/dt$" )
-        # ax1.plot(k_fft[CAP_locs[1]], dPr_dt[p], label="Right") # label=r"$dP_r/dt$")
-        # ax1.plot(k_fft[CAP_locs[2]], dPl_dt[p], label="Left") # label=r"$dP_l/dt$")
-    ax1.plot(k, phi, label="k") # label=r"$dP/dt$" )
-    ax1.plot(k*2*np.pi/dx**2, phi, label="k*2*np.pi/dx**2") # label=r"$dP/dt$" )
-    # ax1.plot(np.fft.fftshift(k_fft), np.fft.fftshift(phi), label="Total") # label=r"$dP/dt$" )
-    # ax1.plot(k_fft, phi, '--', label="k_fft") # label=r"$dP/dt$" )
-    # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    ax1.plot(k_fft, phi2, label="No CAP") # label=r"$dP/dt$" )
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    ax1.set_ylabel(r"$dP/dt$") # TODO: find better name
+    ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
     ax1.set_xlim((-3,3))
     # plt.yscale("log")
     ax1.grid()
@@ -972,10 +951,10 @@ def exe_CAP(x0          = -30,
 
 def exe_CAP_anim(x0          = -50,
                  sigmap      = 0.1,
-                 p0          = 2,
+                 p0          = 1.7,
                  tau         = 0,
-                 L           = 200,
-                 n           = 512,
+                 L           = 300,
+                 n           = 1024,
                  t_steps     = 200,
                  T0          = 100,
                  plot_every  = 2,
@@ -1009,24 +988,24 @@ def exe_CAP_anim(x0          = -50,
     labels       = [r"FFT $\psi$"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    res_psii = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, 
+    res_psi = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, 
                                     time_propagator=Magnus_propagator, V=potential, CAP=[CAP_vector, exp_CAP_vector_dt, CAP_locs]) 
     
-    # if np.any(psis[0]-res_psii[0] != 0.+0.j):
+    # if np.any(psis[0]-res_psi[0] != 0.+0.j):
     #     print("afasfsad")
         
-    # print(psis[0]-res_psii[0])
+    # print(psis[0]-res_psi[0])
     
     trans_loc  = np.where(x>d)[0]
-    trans_prob = np.abs(res_psii[0][trans_loc])**2
+    trans_prob = np.abs(res_psi[0][trans_loc])**2
     trans_pro  = np.trapz(trans_prob, x[trans_loc])
 
     trap_loc   = np.where(np.abs(x)<d)[0]
-    trap_prob  = np.abs(res_psii[0][trap_loc])**2
+    trap_prob  = np.abs(res_psi[0][trap_loc])**2
     trap_pro   = np.trapz(trap_prob, x[trap_loc])
 
     refle_loc  = np.where(x<=-d)[0]
-    refle_prob = np.abs(res_psii[0][refle_loc])**2
+    refle_prob = np.abs(res_psi[0][refle_loc])**2
     refle_pro  = np.trapz(refle_prob, x[refle_loc])
 
     print(f"Transmission probability: {trans_pro}.")
@@ -1056,40 +1035,40 @@ if __name__ == "__main__":
     # print("\nExercise 2.4:")
     # exe_2_4(pot_2=1, animate=True)
     # exe_2_4(pot_2=0, animate=True)
-    exe_2_4_anim(pot_2=1)
+    # exe_2_4_anim(pot_2=1)
 
     # exe_CAP_anim(pot_2=1)
     # print("\nCAP single potential: ")
     # exe_CAP(animate=False, pot_2=0, n_p0=100) 
     # print("\nCAP double potential: ")
     # exe_CAP(animate=False, pot_2=1, n_p0=100) 
-    # print("\nNo CAP single potential: ")
-    # exe_2_4(x0          = -30,
-    #         sigmap      = 0.1,
-    #         p0_min      = .3,
-    #         p0_max      = 7,
-    #         n_p0        = 100,
-    #         tau         = 0,
-    #         L           = 500,
-    #         n           = 1024,
-    #         V0          = 2,
-    #         w           = .5,
-    #         s           = 25,
-    #         d           = 2,
-    #         pot_2       = 0,)
-    # print("\nNo CAP double potential: ")
-    # exe_2_4(x0          = -30,
-    #         sigmap      = 0.1,
-    #         p0_min      = .3,
-    #         p0_max      = 7,
-    #         n_p0        = 100,
-    #         tau         = 0,
-    #         L           = 500,
-    #         n           = 1024,
-    #         V0          = 2,
-    #         w           = .5,
-    #         s           = 25,
-    #         d           = 2,
-    #         pot_2       = 1,)
+    print("\nNo CAP single potential: ")
+    exe_2_4(x0          = -30,
+            sigmap      = 0.1,
+            p0_min      = .2,
+            p0_max      = 6,
+            n_p0        = 200,
+            tau         = 0,
+            L           = 500,
+            n           = 1024,
+            V0          = 3,
+            w           = .5,
+            s           = 25,
+            d           = 2,
+            pot_2       = 0,)
+    print("\nNo CAP double potential: ")
+    exe_2_4(x0          = -30,
+            sigmap      = 0.1,
+            p0_min      = .2,
+            p0_max      = 6,
+            n_p0        = 200,
+            tau         = 0,
+            L           = 500,
+            n           = 1024,
+            V0          = 3,
+            w           = .5,
+            s           = 25,
+            d           = 2,
+            pot_2       = 1,)
     
     
