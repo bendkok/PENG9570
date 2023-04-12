@@ -521,6 +521,7 @@ def exe_2_4(x0          = -60,
             d           = 2,
             pot_2       = 1,
             animate     = False,
+            do_save     = False,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
@@ -545,8 +546,10 @@ def exe_2_4(x0          = -60,
     n = len(x)
     L = 2*np.max(x)
     dx = (np.max(x)-np.min(x))/(n-1)
-    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-    k_fft = np.fft.fftshift(k_fft)
+    # k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    # k_fft = np.fft.fftshift(k_fft)
+    k_fft = 2*(np.pi/L)*np.array(list(range(int(-n/2), int(n/2))))
+
     phi2s = np.zeros((len(p0s), len(x)))
     norms = np.zeros(len(p0s))
     
@@ -571,7 +574,7 @@ def exe_2_4(x0          = -60,
         # norms[p] = si.simpson(phi2s[p], k_fft) 
         
     phi2s = phi2s * dx**2 / (2*np.pi)
-    for p in tqdm(range(len(p0s))):
+    for p in range(len(p0s)):
         norms[p] = si.simpson(phi2s[p], k_fft) 
     
     # print(f"Transmission probability: {trans_pro}.")
@@ -592,9 +595,13 @@ def exe_2_4(x0          = -60,
     plt.ylabel("Probaility")
     plt.grid()
     plt.legend()
-    title = "Double potential." if pot_2 == 1 else "Single potential."
-    title = "2.4: " + title +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    title = "double potential" if pot_2 == 1 else "single potential"
+    # title = "2.4: " + title +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    title = "Transmission/reflection probability for " + title + " without CAP.\n" + r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
+    if do_save:
+        savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_noCAP.pdf"
+        plt.savefig(savename)
     plt.show()
     
     max_diff = np.max(np.abs(np.array(trans_proability) + np.array(refle_proability) - 1))
@@ -608,6 +615,13 @@ def exe_2_4(x0          = -60,
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.colorbar(label=r"$dP/dp$")
+    title = "double potential" if pot_2 == 1 else "single potential"
+    title = "Velocity density distribution for " + title + " without CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    plt.title(title)
+    plt.ylim(-6.1,6.1)
+    if do_save:
+        savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_noCAP.pdf"
+        plt.savefig(savename)
     plt.show()
     
 
@@ -731,14 +745,14 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 
 def exe_CAP(x0          = -30,
             sigmap      = 0.1,
-            p0_min      = .3,
-            p0_max      = 7,
+            p0_min      = .2,
+            p0_max      = 6,
             n_p0        = 200,
             tau         = 0,
             L           = 200,
             n           = 512,
             t_steps     = 200,
-            V0          = 2,
+            V0          = 3,
             w           = .5,
             s           = 25,
             d           = 2,
@@ -746,6 +760,7 @@ def exe_CAP(x0          = -30,
             animate     = False,
             gamma_0     = .005,
             R_part      = .8,
+            do_save     = False,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
@@ -783,14 +798,14 @@ def exe_CAP(x0          = -30,
     for p in tqdm(range(len(p0s))):
 
         p0  = p0s[p]
-        T   = Ts [p] # (L/4 + np.abs(x0))/np.abs(p0) # (L/4 - x0)/(p0)*4
+        # T   = Ts [p] # (L/4 + np.abs(x0))/np.abs(p0) # (L/4 - x0)/(p0)*4
         dt  = dts[p] # T/t_steps
         dt2 = dt*2
         # times       = np.linspace(dt, T, t_steps)
         # dt          = T[2] - T[1]
         psi         = [psi_single_inital(x,x0,sigmap,p0,tau)]
         CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0s[p], R = R_part*L/2)
-        Hamiltonian = [make_fft_Hamiltonian(n, L,dt, V=potential - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
+        Hamiltonian = [make_fft_Hamiltonian(n,L,dt, V = potential - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
 
         CAP_vector_r = np.zeros_like(CAP_vector)
         CAP_vector_l = np.zeros_like(CAP_vector)
@@ -825,9 +840,12 @@ def exe_CAP(x0          = -30,
             Reflection  [p] += overlap_L
             
             pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
-            dPr_dp[p] = dPr_dp[p] + np.real( sc.fft.fft(CAP_vector_r * res_psi[0]) ) * pis_fourier 
-            dPl_dp[p] = dPl_dp[p] + np.real( sc.fft.fft(CAP_vector_l * res_psi[0]) ) * pis_fourier 
-            dP_dp[p]  = dP_dp[p]  + np.real( sc.fft.fft(CAP_vector   * res_psi[0]) ) * pis_fourier 
+            dPr_dp[p] += np.real(pis_fourier * sc.fft.fft(CAP_vector_r * res_psi[0]) ) 
+            dPl_dp[p] += np.real(pis_fourier * sc.fft.fft(CAP_vector_l * res_psi[0]) )
+            dP_dp[p]  += np.real(pis_fourier * sc.fft.fft(CAP_vector   * res_psi[0]) )
+            # dPr_dp[p] = dPr_dp[p] + np.real( sc.fft.fft(CAP_vector_r * res_psi[0]) ) * pis_fourier 
+            # dPl_dp[p] = dPl_dp[p] + np.real( sc.fft.fft(CAP_vector_l * res_psi[0]) ) * pis_fourier 
+            # dP_dp[p]  = dP_dp[p]  + np.real( sc.fft.fft(CAP_vector   * res_psi[0]) ) * pis_fourier 
 
             l+=1
             if l % stop_test == 0:
@@ -856,9 +874,16 @@ def exe_CAP(x0          = -30,
         refle_prob = np.abs(res_psi[refle_loc])**2
         refle_proability.append(  np.trapz(refle_prob, x[refle_loc]) )
         
-        dPr_dp = dPr_dp * 2 * dt # * dx**2 / (2*np.pi)
-        dPl_dp = dPl_dp * 2 * dt # * dx**2 / (2*np.pi)
-        dP_dp  = dP_dp  * 2 * dt # * dx**2 / (2*np.pi)
+        # dPr_dp[p] = dPr_dp[p] * 2 * dt * dx**2 / (2*np.pi)
+        # dPl_dp[p] = dPl_dp[p] * 2 * dt * dx**2 / (2*np.pi)
+        # dP_dp [p] = dP_dp [p] * 2 * dt * dx**2 / (2*np.pi)
+        dPr_dp[p] *= dt
+        dPl_dp[p] *= dt
+        dP_dp [p] *= dt
+        
+    dPr_dp *= 2 * dx**2 / (2*np.pi)
+    dPl_dp *= 2 * dx**2 / (2*np.pi)
+    dP_dp  *= 2 * dx**2 / (2*np.pi)
 
     # print(f"Transmission probability: {trans_pro}.")
     # print(f"Reflection probability:   {refle_pro}.")
@@ -904,26 +929,32 @@ def exe_CAP(x0          = -30,
     plt.ylabel("Probaility") # TODO: find better name
     plt.grid()
     plt.legend()
-    title = "Double potential" if pot_2 == 1 else "Single potential"
-    title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    title = "double potential" if pot_2 == 1 else "single potential"
+    title = "Transmission/reflection probability for " + title + " with CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
+    if do_save:
+        savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_CAP.pdf"
+        plt.savefig(savename)
     plt.show()
     
     
     
-    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
-    k_fft = np.fft.fftshift(k_fft)
+    # k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    # k_fft = np.fft.fftshift(k_fft)
+    k_fft = 2*(np.pi/L)*np.array(list(range(int(-n/2), int(n/2))))
     
-    phi2 = [np.fft.fftshift(i) for i in dP_dp]
+    phi2s = np.array([np.fft.fftshift(p) for p in dP_dp])
     
     # check if it is properly normalised
     # inte  = si.simpson(dP_dp, k_fft) 
     # print("Norm with manual k-vector: ", inte) # should be ~1
     
+    # inte  = [np.trapz(phi2s[p], k_fft) for p in range(len(phi2s))]
+    
     norms = np.zeros(len(p0s))
-    for p in tqdm(range(len(p0s))):
+    for p in range(len(p0s)):
         # norms[p] = si.simpson(dP_dp[p], k_fft) 
-        norms[p] = si.simpson(phi2[p], k_fft) 
+        norms[p] = si.simpson(phi2s[p], k_fft) 
     
     # we find the peaks values
     # peaks = sc.signal.find_peaks(dP_dp, height=np.max(dP_dp)*0.05)
@@ -932,12 +963,21 @@ def exe_CAP(x0          = -30,
     # print(f"Peak locs:   {k_fft[peaks[0]]}. p0 = {p0}.", '\n')
     
     # check if it is properly normalised
-    print(f"Max norm: {np.max(norms)}. Min norm: {np.min(norms)}.") # should be ~1
+    print(f"Max norm: {np.max(norms)}. Min norm: {np.min(norms)}. Mean norm: {np.mean(norms)}.") # should be ~1
+    # print(f"Max norm: {np.max(inte)}. Min norm: {np.min(inte)}. Mean norm: {np.mean(inte)}.") # should be ~1
     X,Y = np.meshgrid(p0s, k_fft)
-    plt.contourf(X,Y, phi2.T, norm="log")
+    # plt.contourf(X,Y, phi2s.T, norm="log")
+    plt.contourf(X,Y, np.abs(phi2s.T), norm="log")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.colorbar(label=r"$dP/dp$")
+    title = "double potential" if pot_2 == 1 else "single potential"
+    title = "Velocity density distribution for " + title + " with CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    plt.title(title)
+    # plt.ylim(-6.1,6.1)
+    if do_save:
+        savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_CAP.pdf"
+        plt.savefig(savename)
     plt.show()
     
     
@@ -987,7 +1027,7 @@ def exe_CAP_anim(x0          = -50,
                  sigmap      = 0.1,
                  p0          = 1.7,
                  tau         = 0,
-                 L           = 300,
+                 L           = 400,
                  n           = 1024,
                  t_steps     = 200,
                  T0          = 100,
@@ -1073,40 +1113,42 @@ if __name__ == "__main__":
 
     # exe_CAP_anim(pot_2=1)
     print("\nCAP single potential: ")
-    exe_CAP(animate=False, pot_2=0, n_p0=100) 
+    exe_CAP(animate=False, pot_2=0, n_p0=200, do_save=True) 
     print("\nCAP double potential: ")
-    exe_CAP(animate=False, pot_2=1, n_p0=100) 
+    exe_CAP(animate=False, pot_2=1, n_p0=200, do_save=True) 
     
-    # print("\nNo CAP single potential: ")
-    # exe_2_4(x0          = -30,
-    #         sigmap      = 0.1,
-    #         p0_min      = .2,
-    #         p0_max      = 6,
-    #         n_p0        = 100,
-    #         tau         = 0,
-    #         L           = 500,
-    #         n           = 1024,
-    #         V0          = 3,
-    #         w           = .5,
-    #         s           = 25,
-    #         d           = 2,
-    #         pot_2       = 0,
-    #         animate     = False,)
-    # print("\nNo CAP double potential: ")
-    # exe_2_4(x0          = -30,
-    #         sigmap      = 0.1,
-    #         p0_min      = .2,
-    #         p0_max      = 6,
-    #         n_p0        = 100,
-    #         tau         = 0,
-    #         L           = 500,
-    #         n           = 1024,
-    #         V0          = 3,
-    #         w           = .5,
-    #         s           = 25,
-    #         d           = 2,
-    #         pot_2       = 1,
-    #         animate     = False,)
+    print("\nNo CAP single potential: ")
+    exe_2_4(x0          = -30,
+            sigmap      = 0.1,
+            p0_min      = .2,
+            p0_max      = 6,
+            n_p0        = 200,
+            tau         = 0,
+            L           = 500,
+            n           = 1024,
+            V0          = 3,
+            w           = .5,
+            s           = 25,
+            d           = 2,
+            pot_2       = 0,
+            animate     = False, 
+            do_save     = True,)
+    print("\nNo CAP double potential: ")
+    exe_2_4(x0          = -30,
+            sigmap      = 0.1,
+            p0_min      = .2,
+            p0_max      = 6,
+            n_p0        = 200,
+            tau         = 0,
+            L           = 500,
+            n           = 1024,
+            V0          = 3,
+            w           = .5,
+            s           = 25,
+            d           = 2,
+            pot_2       = 1,
+            animate     = False,
+            do_save     = True,)
     
     # n2 = int(100/2)
     # x0=-30; sigmap=0.1; tau=0; L=500; n=1024; V0=3; w=.5; s=25; d=2
