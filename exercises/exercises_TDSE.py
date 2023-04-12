@@ -163,11 +163,11 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         Reflection   = np.zeros(len(psis))
         Reaminader   = np.zeros(len(psis))
         
-        # dPl_dt = np.zeros((len(psis), len(CAP_locs[2])))
-        # dPr_dt = np.zeros((len(psis), len(CAP_locs[1])))
-        dPl_dt = np.zeros((len(psis), len(psis[0])))
-        dPr_dt = np.zeros((len(psis), len(psis[0])))
-        dP_dt  = np.zeros((len(psis), len(psis[0])))
+        # dPl_dp = np.zeros((len(psis), len(CAP_locs[2])))
+        # dPr_dp = np.zeros((len(psis), len(CAP_locs[1])))
+        dPl_dp = np.zeros((len(psis), len(psis[0])))
+        dPr_dp = np.zeros((len(psis), len(psis[0])))
+        dP_dp  = np.zeros((len(psis), len(psis[0])))
         
         
     else:
@@ -189,11 +189,11 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
                 Reflection  [i] += overlap_L
                 
                 pis_fourier = np.conj( sc.fft.fft(psis[i]) )
-                # dPr_dt[i][CAP_locs[1]] += np.real( pis_fourier[CAP_locs[1]] * sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
-                # dPl_dt[i][CAP_locs[2]] += np.real( pis_fourier[CAP_locs[2]] * sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
-                dPr_dt[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_r * psis[i]) )
-                dPl_dt[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_l * psis[i]) )
-                dP_dt [i] += np.real( pis_fourier * sc.fft.fft(CAP_vector   * psis[i]) )
+                # dPr_dp[i][CAP_locs[1]] += np.real( pis_fourier[CAP_locs[1]] * sc.fft.fft(CAP_vector[CAP_locs[1]] * psis[i][CAP_locs[1]]) )
+                # dPl_dp[i][CAP_locs[2]] += np.real( pis_fourier[CAP_locs[2]] * sc.fft.fft(CAP_vector[CAP_locs[2]] * psis[i][CAP_locs[2]]) )
+                dPr_dp[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_r * psis[i]) )
+                dPl_dp[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_l * psis[i]) )
+                dP_dp [i] += np.real( pis_fourier * sc.fft.fft(CAP_vector   * psis[i]) )
                 
 
         # we don't update the plot every single time step
@@ -238,17 +238,17 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         L = 2*np.max(x)
         dx = (np.max(x)-np.min(x))/(n-1)
         
-        dPr_dt = dPr_dt * 2 * dt * dx**2 / (2*np.pi)
-        dPl_dt = dPl_dt * 2 * dt * dx**2 / (2*np.pi)
-        dP_dt  = dP_dt  * 2 * dt * dx**2 / (2*np.pi)
+        dPr_dp = dPr_dp * 2 * dt * dx**2 / (2*np.pi)
+        dPl_dp = dPl_dp * 2 * dt * dx**2 / (2*np.pi)
+        dP_dp  = dP_dp  * 2 * dt * dx**2 / (2*np.pi)
         
-        phi2 = [np.fft.fftshift(i) for i in dP_dt]
+        phi2 = [np.fft.fftshift(i) for i in dP_dp]
         
         print()
-        # print(f"dPr_dt: {dPr_dt}.")
-        # print(f"dPl_dt: {dPl_dt}.")
-        # print(f"Sum:    {[dPl_dt[i] + dPr_dt[i] for i in range(len(dPr_dt))]}.")
-        # print(f"dP_dt:  {dP_dt}.", "\n")
+        # print(f"dPr_dp: {dPr_dp}.")
+        # print(f"dPl_dp: {dPl_dp}.")
+        # print(f"Sum:    {[dPl_dp[i] + dPr_dp[i] for i in range(len(dPr_dp))]}.")
+        # print(f"dP_dp:  {dP_dp}.", "\n")
         
         k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
         k_fft = np.fft.fftshift(k_fft)
@@ -265,9 +265,9 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         
         figure1, ax1 = plt.subplots(figsize=(12, 8))
         for p in range(len(psis)):
-            ax1.plot(k_fft, np.fft.fftshift(dPr_dt)[p], '--', label="Right") # label=r"$dP_r/dt$")
-            ax1.plot(k_fft, np.fft.fftshift(dPl_dt)[p], '--', label="Left") # label=r"$dP_l/dt$")
-            ax1.plot(k_fft,                    phi2[p],       label="Total") # label=r"$dP/dt$" ) # /inte
+            ax1.plot(k_fft, np.fft.fftshift(dPr_dp)[p], '--', label="Right") # label=r"$dP_r/dt$")
+            ax1.plot(k_fft, np.fft.fftshift(dPl_dp)[p], '--', label="Left") # label=r"$dP_l/dt$")
+            ax1.plot(k_fft,                    phi2[p],       label="Total") # label=r"$dP/dp$" ) # /inte
         ax1.set_xlabel(r"$p$")
         # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
         ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
@@ -607,7 +607,7 @@ def exe_2_4(x0          = -60,
     plt.contourf(X,Y, phi2s.T, norm="log")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
-    plt.colorbar(label=r"$dP/dt$")
+    plt.colorbar(label=r"$dP/dp$")
     plt.show()
     
 
@@ -701,7 +701,7 @@ def exe_2_4_anim(x0          = -50,
     print(f"Peak locs:   {k_fft[peaks[0]]}. p0 = {p0}.", '\n')
     
     figure1, ax1 = plt.subplots(figsize=(12, 8))
-    ax1.plot(k_fft, phi2, label="No CAP") # label=r"$dP/dt$" )
+    ax1.plot(k_fft, phi2, label="No CAP") # label=r"$dP/dp$" )
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
     ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
@@ -767,9 +767,9 @@ def exe_CAP(x0          = -30,
     Transmission = np.zeros(len(p0s))
     Reflection   = np.zeros(len(p0s))
     Reaminader   = np.zeros(len(p0s))
-    dPl_dt       = np.zeros((len(p0s), len(x)))
-    dPr_dt       = np.zeros((len(p0s), len(x)))
-    dP_dt        = np.zeros((len(p0s), len(x)))
+    dPl_dp       = np.zeros((len(p0s), len(x)))
+    dPr_dp       = np.zeros((len(p0s), len(x)))
+    dP_dp        = np.zeros((len(p0s), len(x)))
 
     fininsh_l = []
 
@@ -825,9 +825,9 @@ def exe_CAP(x0          = -30,
             Reflection  [p] += overlap_L
             
             pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
-            dPr_dt[p] = dPr_dt[p] + np.real( sc.fft.fft(CAP_vector_r * res_psi[0]) ) * pis_fourier 
-            dPl_dt[p] = dPl_dt[p] + np.real( sc.fft.fft(CAP_vector_l * res_psi[0]) ) * pis_fourier 
-            dP_dt[p]  = dP_dt[p]  + np.real( sc.fft.fft(CAP_vector   * res_psi[0]) ) * pis_fourier 
+            dPr_dp[p] = dPr_dp[p] + np.real( sc.fft.fft(CAP_vector_r * res_psi[0]) ) * pis_fourier 
+            dPl_dp[p] = dPl_dp[p] + np.real( sc.fft.fft(CAP_vector_l * res_psi[0]) ) * pis_fourier 
+            dP_dp[p]  = dP_dp[p]  + np.real( sc.fft.fft(CAP_vector   * res_psi[0]) ) * pis_fourier 
 
             l+=1
             if l % stop_test == 0:
@@ -856,9 +856,9 @@ def exe_CAP(x0          = -30,
         refle_prob = np.abs(res_psi[refle_loc])**2
         refle_proability.append(  np.trapz(refle_prob, x[refle_loc]) )
         
-        dPr_dt = dPr_dt * 2 * dt #* dx**2 / (2*np.pi)
-        dPl_dt = dPl_dt * 2 * dt #* dx**2 / (2*np.pi)
-        dP_dt  = dP_dt  * 2 * dt #* dx**2 / (2*np.pi)
+        dPr_dp = dPr_dp * 2 * dt # * dx**2 / (2*np.pi)
+        dPl_dp = dPl_dp * 2 * dt # * dx**2 / (2*np.pi)
+        dP_dp  = dP_dp  * 2 * dt # * dx**2 / (2*np.pi)
 
     # print(f"Transmission probability: {trans_pro}.")
     # print(f"Reflection probability:   {refle_pro}.")
@@ -914,21 +914,21 @@ def exe_CAP(x0          = -30,
     k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
     k_fft = np.fft.fftshift(k_fft)
     
-    phi2 = [np.fft.fftshift(i) for i in dP_dt]
+    phi2 = [np.fft.fftshift(i) for i in dP_dp]
     
     # check if it is properly normalised
-    # inte  = si.simpson(dP_dt, k_fft) 
+    # inte  = si.simpson(dP_dp, k_fft) 
     # print("Norm with manual k-vector: ", inte) # should be ~1
     
     norms = np.zeros(len(p0s))
     for p in tqdm(range(len(p0s))):
-        # norms[p] = si.simpson(dP_dt[p], k_fft) 
+        # norms[p] = si.simpson(dP_dp[p], k_fft) 
         norms[p] = si.simpson(phi2[p], k_fft) 
     
     # we find the peaks values
-    # peaks = sc.signal.find_peaks(dP_dt, height=np.max(dP_dt)*0.05)
+    # peaks = sc.signal.find_peaks(dP_dp, height=np.max(dP_dp)*0.05)
     # print()
-    # print(f"Peak values: {dP_dt[peaks[0]]}.")
+    # print(f"Peak values: {dP_dp[peaks[0]]}.")
     # print(f"Peak locs:   {k_fft[peaks[0]]}. p0 = {p0}.", '\n')
     
     # check if it is properly normalised
@@ -937,18 +937,18 @@ def exe_CAP(x0          = -30,
     plt.contourf(X,Y, phi2.T, norm="log")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
-    plt.colorbar(label=r"$dP/dt$")
+    plt.colorbar(label=r"$dP/dp$")
     plt.show()
     
     
     
-    # plt.plot(p0s, dPr_dt, label="Right") # label=r"$dP_r/dt$")
-    # plt.plot(p0s, dPl_dt, label="Left") # label=r"$dP_l/dt$")
-    # plt.plot(p0s, dP_dt,  label="Total") # label=r"$dP/dt$" )
-    # # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    # plt.plot(p0s, dPr_dp, label="Right") # label=r"$dP_r/dt$")
+    # plt.plot(p0s, dPl_dp, label="Left") # label=r"$dP_l/dt$")
+    # plt.plot(p0s, dP_dp,  label="Total") # label=r"$dP/dp$" )
+    # # plt.plot(p0s, dPl_dp+dPr_dp,  label="Sum")
     # plt.xlabel(r"$p_0$")
     # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    # plt.ylabel(r"$dP/dt$") # TODO: find better name
+    # plt.ylabel(r"$dP/dp$") # TODO: find better name
     # # plt.yscale("log")
     # plt.grid()
     # plt.legend()
@@ -967,8 +967,8 @@ def exe_CAP(x0          = -30,
     
     max_diff = np.max(np.abs(np.array(sums) - 1))
     print(f"Max differnce of sums from 1: {max_diff}")
-    # print("dPr_dt:", np.min(dPr_dt), np.max(dPr_dt), np.mean(dPr_dt), np.std(dPr_dt))
-    # print("dPl_dt:", np.min(dPl_dt), np.max(dPl_dt), np.mean(dPl_dt), np.std(dPl_dt))
+    # print("dPr_dp:", np.min(dPr_dp), np.max(dPr_dp), np.mean(dPr_dp), np.std(dPr_dp))
+    # print("dPl_dp:", np.min(dPl_dp), np.max(dPl_dp), np.mean(dPl_dp), np.std(dPl_dp))
 
     # print()
     # print(fininsh_l)
