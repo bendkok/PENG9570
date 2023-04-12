@@ -705,7 +705,7 @@ def exe_2_4_anim(x0          = -50,
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
     ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
-    ax1.set_xlim((-3,3))
+    ax1.set_xlim((-np.abs(p0)*2,np.abs(p0)*2))
     # plt.yscale("log")
     ax1.grid()
     ax1.legend()
@@ -767,14 +767,18 @@ def exe_CAP(x0          = -30,
     Transmission = np.zeros(len(p0s))
     Reflection   = np.zeros(len(p0s))
     Reaminader   = np.zeros(len(p0s))
-    dPl_dt       = np.zeros(len(p0s))
-    dPr_dt       = np.zeros(len(p0s))
-    dP_dt        = np.zeros(len(p0s))
+    dPl_dt       = np.zeros((len(p0s), len(x)))
+    dPr_dt       = np.zeros((len(p0s), len(x)))
+    dP_dt        = np.zeros((len(p0s), len(x)))
 
     fininsh_l = []
 
     Ts  = (L/4 + np.abs(x0))/np.abs(p0s)
     dts = Ts/t_steps
+    
+    n = len(x)
+    L = 2*np.max(x)
+    dx = (np.max(x)-np.min(x))/(n-1)
 
     for p in tqdm(range(len(p0s))):
 
@@ -788,6 +792,12 @@ def exe_CAP(x0          = -30,
         CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0s[p], R = R_part*L/2)
         Hamiltonian = [make_fft_Hamiltonian(n, L,dt, V=potential - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
 
+        CAP_vector_r = np.zeros_like(CAP_vector)
+        CAP_vector_l = np.zeros_like(CAP_vector)
+        CAP_vector_r[CAP_locs[1]] = CAP_vector[CAP_locs[1]]
+        CAP_vector_l[CAP_locs[2]] = CAP_vector[CAP_locs[2]]
+        
+        
         res_psi     = psi
         not_converged = True
 
@@ -814,19 +824,10 @@ def exe_CAP(x0          = -30,
             Transmission[p] += overlap_R
             Reflection  [p] += overlap_L
             
-            # pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
-            # dPr_dt[p]  += np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) * pis_fourier[CAP_locs[1]] )
-            # dPl_dt[p]  += np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) * pis_fourier[CAP_locs[2]] )
-            # dP_dt[p]   += np.real( sc.fft.fft(CAP_vector * res_psi[0]) * pis_fourier )
             pis_fourier = np.conj( sc.fft.fft(res_psi[0]) )
-            dPr_dt[p]  += np.real( pis_fourier[CAP_locs[1]] @ sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) )
-            dPl_dt[p]  += np.real( pis_fourier[CAP_locs[2]] @ sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) )
-            # dP_dt [p]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector[CAP_locs[0]] * res_psi[0][CAP_locs[0]]) )
-            dP_dt [p]  += np.real( pis_fourier[CAP_locs[0]] @ sc.fft.fft(CAP_vector * res_psi[0]) )
-            # pis_fourier = np.sum( np.real( np.conj( sc.fft.fft(res_psi[0]) )))
-            # dPr_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[1]] * res_psi[0][CAP_locs[1]]) ) ) * pis_fourier 
-            # dPl_dt[p]  += np.sum( np.real( sc.fft.fft(CAP_vector[CAP_locs[2]] * res_psi[0][CAP_locs[2]]) ) ) * pis_fourier 
-            # dP_dt[p]   += np.sum( np.real( sc.fft.fft(CAP_vector * res_psi[0]) ) ) * pis_fourier 
+            dPr_dt[p] = dPr_dt[p] + np.real( sc.fft.fft(CAP_vector_r * res_psi[0]) ) * pis_fourier 
+            dPl_dt[p] = dPl_dt[p] + np.real( sc.fft.fft(CAP_vector_l * res_psi[0]) ) * pis_fourier 
+            dP_dt[p]  = dP_dt[p]  + np.real( sc.fft.fft(CAP_vector   * res_psi[0]) ) * pis_fourier 
 
             l+=1
             if l % stop_test == 0:
@@ -854,6 +855,10 @@ def exe_CAP(x0          = -30,
         refle_loc  = np.where(x<=-d)[0]
         refle_prob = np.abs(res_psi[refle_loc])**2
         refle_proability.append(  np.trapz(refle_prob, x[refle_loc]) )
+        
+        dPr_dt = dPr_dt * 2 * dt #* dx**2 / (2*np.pi)
+        dPl_dt = dPl_dt * 2 * dt #* dx**2 / (2*np.pi)
+        dP_dt  = dP_dt  * 2 * dt #* dx**2 / (2*np.pi)
 
     # print(f"Transmission probability: {trans_pro}.")
     # print(f"Reflection probability:   {refle_pro}.")
@@ -888,10 +893,6 @@ def exe_CAP(x0          = -30,
     # plt.plot(x[loc], potential.diagonal()[loc], 'o--')
     # plt.show()
     
-    dPr_dt       = dPr_dt * 2
-    dPl_dt       = dPl_dt * 2
-    dP_dt        = dP_dt  * 2
-    
     sums = [Transmission[s]+Reflection[s] for s in range(len(Transmission))]
 
     plt.plot(p0s, Transmission, label="Transmission")
@@ -908,20 +909,53 @@ def exe_CAP(x0          = -30,
     plt.title(title)
     plt.show()
     
-    plt.plot(p0s, dPr_dt, label="Right") # label=r"$dP_r/dt$")
-    plt.plot(p0s, dPl_dt, label="Left") # label=r"$dP_l/dt$")
-    plt.plot(p0s, dP_dt,  label="Total") # label=r"$dP/dt$" )
-    # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    
+    
+    k_fft = 2*(np.pi/L)*np.array(list(range(int(n/2))) + list(range(int(-n/2),0)))
+    k_fft = np.fft.fftshift(k_fft)
+    
+    phi2 = [np.fft.fftshift(i) for i in dP_dt]
+    
+    # check if it is properly normalised
+    # inte  = si.simpson(dP_dt, k_fft) 
+    # print("Norm with manual k-vector: ", inte) # should be ~1
+    
+    norms = np.zeros(len(p0s))
+    for p in tqdm(range(len(p0s))):
+        # norms[p] = si.simpson(dP_dt[p], k_fft) 
+        norms[p] = si.simpson(phi2[p], k_fft) 
+    
+    # we find the peaks values
+    # peaks = sc.signal.find_peaks(dP_dt, height=np.max(dP_dt)*0.05)
+    # print()
+    # print(f"Peak values: {dP_dt[peaks[0]]}.")
+    # print(f"Peak locs:   {k_fft[peaks[0]]}. p0 = {p0}.", '\n')
+    
+    # check if it is properly normalised
+    print(f"Max norm: {np.max(norms)}. Min norm: {np.min(norms)}.") # should be ~1
+    X,Y = np.meshgrid(p0s, k_fft)
+    plt.contourf(X,Y, phi2.T, norm="log")
     plt.xlabel(r"$p_0$")
-    # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel(r"$dP/dt$") # TODO: find better name
-    # plt.yscale("log")
-    plt.grid()
-    plt.legend()
-    title = "Double potential" if pot_2 == 1 else "Single potential"
-    title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
-    plt.title(title)
+    plt.ylabel(r"$k$")
+    plt.colorbar(label=r"$dP/dt$")
     plt.show()
+    
+    
+    
+    # plt.plot(p0s, dPr_dt, label="Right") # label=r"$dP_r/dt$")
+    # plt.plot(p0s, dPl_dt, label="Left") # label=r"$dP_l/dt$")
+    # plt.plot(p0s, dP_dt,  label="Total") # label=r"$dP/dt$" )
+    # # plt.plot(p0s, dPl_dt+dPr_dt,  label="Sum")
+    # plt.xlabel(r"$p_0$")
+    # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+    # plt.ylabel(r"$dP/dt$") # TODO: find better name
+    # # plt.yscale("log")
+    # plt.grid()
+    # plt.legend()
+    # title = "Double potential" if pot_2 == 1 else "Single potential"
+    # title = title + " with CAP." +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    # plt.title(title)
+    # plt.show()
 
 
     # print(f"Transmission: {np.min(Transmission), np.max(Transmission)}.")
@@ -984,12 +1018,12 @@ def exe_CAP_anim(x0          = -50,
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
     psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
-    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ] #* CAP[1]]
+    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ] # * CAP[1]]
     labels       = [r"FFT $\psi$"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
     res_psi = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, 
-                                    time_propagator=Magnus_propagator, V=potential, CAP=[CAP_vector, exp_CAP_vector_dt, CAP_locs]) 
+                                   time_propagator=Magnus_propagator, V=potential, CAP=[CAP_vector, exp_CAP_vector_dt, CAP_locs]) 
     
     # if np.any(psis[0]-res_psi[0] != 0.+0.j):
     #     print("afasfsad")
@@ -1038,37 +1072,46 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
 
     # exe_CAP_anim(pot_2=1)
-    # print("\nCAP single potential: ")
-    # exe_CAP(animate=False, pot_2=0, n_p0=100) 
-    # print("\nCAP double potential: ")
-    # exe_CAP(animate=False, pot_2=1, n_p0=100) 
-    print("\nNo CAP single potential: ")
-    exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .2,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 500,
-            n           = 1024,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 0,)
-    print("\nNo CAP double potential: ")
-    exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .2,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 500,
-            n           = 1024,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 1,)
+    print("\nCAP single potential: ")
+    exe_CAP(animate=False, pot_2=0, n_p0=100) 
+    print("\nCAP double potential: ")
+    exe_CAP(animate=False, pot_2=1, n_p0=100) 
     
+    # print("\nNo CAP single potential: ")
+    # exe_2_4(x0          = -30,
+    #         sigmap      = 0.1,
+    #         p0_min      = .2,
+    #         p0_max      = 6,
+    #         n_p0        = 100,
+    #         tau         = 0,
+    #         L           = 500,
+    #         n           = 1024,
+    #         V0          = 3,
+    #         w           = .5,
+    #         s           = 25,
+    #         d           = 2,
+    #         pot_2       = 0,
+    #         animate     = False,)
+    # print("\nNo CAP double potential: ")
+    # exe_2_4(x0          = -30,
+    #         sigmap      = 0.1,
+    #         p0_min      = .2,
+    #         p0_max      = 6,
+    #         n_p0        = 100,
+    #         tau         = 0,
+    #         L           = 500,
+    #         n           = 1024,
+    #         V0          = 3,
+    #         w           = .5,
+    #         s           = 25,
+    #         d           = 2,
+    #         pot_2       = 1,
+    #         animate     = False,)
+    
+    # n2 = int(100/2)
+    # x0=-30; sigmap=0.1; tau=0; L=500; n=1024; V0=3; w=.5; s=25; d=2
+    # p0s = np.linspace(.1, 6, 100)
+    # exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),8,V0,w,s,d,0)
+    # exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),8,V0,w,s,d,0)
+    # exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),8,V0,w,s,d,0)
     
