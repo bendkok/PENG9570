@@ -18,7 +18,7 @@ from tqdm import tqdm
 sns.set_theme(style="dark") # nice plots
 
 
-def psi_single_inital(x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
+def psi_single_initial(x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
     # Initial value for a wave function with one Gaussian wave
     # return np.sqrt( np.sqrt(2) * sigmap / (np.sqrt(np.pi)*(1-2j*sigmap**2*tau)) ) * np.exp( - (sigmap**2 * (x-x0)**2 / (1-2j*sigmap**2*tau)) + 1j*p0*x)
     
@@ -35,9 +35,9 @@ def psi_single_analytical(t, x, x0 = -20, sigmap = 0.2, p0 = 3, tau = 5):
     return N2 * np.exp( - 2 * sigmap**2 * (x - x0 - p0*t)**2 / (1 + 4*sigmap**4*(t-tau)**2) )
 
 
-def psi_double_inital(x, x0 = -25, p0 = 3, sigmap0 = 0.2, tau0 = 5, x1 = 25, p1 = -3, sigmap1 = 0.2, tau1 = 5):
+def psi_double_initial(x, x0 = -25, p0 = 3, sigmap0 = 0.2, tau0 = 5, x1 = 25, p1 = -3, sigmap1 = 0.2, tau1 = 5):
     # Initial value for a wave function with two Gaussian waves
-    return (psi_single_inital(x, x0=x0, p0=p0, sigmap=sigmap0, tau=tau0) + psi_single_inital(x, x0=x1, p0=p1, sigmap=sigmap1, tau=tau1)) / np.sqrt(2)
+    return (psi_single_initial(x, x0=x0, p0=p0, sigmap=sigmap0, tau=tau0) + psi_single_initial(x, x0=x1, p0=p1, sigmap=sigmap1, tau=tau1)) / np.sqrt(2)
 
 
 def Crank_Nicolson(psi, F):
@@ -173,7 +173,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
     else:
         ax.legend()
 
-    # goes thorugh all the time steps
+    # goes through all the time steps
     for t in tqdm(range(len(times))):
 
         # finds the new values for psi
@@ -321,7 +321,7 @@ def exe_1_5(x0          = -20,
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau),psi_single_inital(x,x0,sigmap,p0,tau)]
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau),psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_3_point_Hamiltonian(n, h, dt)[1], make_5_point_Hamiltonian(n, h, dt)[1]]
     labels       = ["3-points", "5-points"]
     analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -345,7 +345,7 @@ def exe_1_6(x0          = -20,
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau),psi_single_inital(x,x0,sigmap,p0,tau)]
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau),psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_3_point_Hamiltonian(n, h, dt)[0], make_5_point_Hamiltonian(n, h, dt)[0]]
     labels       = ["3-points", "5-points"]
     analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -369,7 +369,7 @@ def exe_1_7(x0          = -20,
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]*3
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]*3
     Hamiltonians = [make_3_point_Hamiltonian(n, h, dt)[0], make_5_point_Hamiltonian(n, h, dt)[0], make_fft_Hamiltonian(n, L, dt)[0]]
     labels       = ["3-points", "5-points", "FFT"]
     analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -395,7 +395,7 @@ def exe_1_8(x0          = -20,
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    psis         = [psi_double_inital(x, x0, p0, sigmap, tau, x1, p1, sigmap, tau)]
+    psis         = [psi_double_initial(x, x0, p0, sigmap, tau, x1, p1, sigmap, tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L, dt)[0]]
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -428,7 +428,7 @@ def exe_2_1(x0          = -50,
 
     potential = rectangular_potential(x, V0, s, w)
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L,dt, V=potential)[0]]
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -473,7 +473,7 @@ def exe_2_3(x0          = -50,
 
     potential = rectangular_potential(x, V0, s, w)
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L,dt, V=potential)[0]]
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -556,7 +556,7 @@ def exe_2_4(x0          = -60,
     for p in tqdm(range(len(p0s))):
 
         p0 = p0s[p]
-        psi         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+        psi         = [psi_single_initial(x,x0,sigmap,p0,tau)]
         Hamiltonian = [make_fft_Hamiltonian(n, L,(L/4 - x0)/(p0), V=potential)[0]] # T = (L/4 - x0)/p0
 
         res_psi = solve_no_plotting(psi, Hamiltonian)[0]
@@ -668,7 +668,7 @@ def exe_2_4_anim(x0          = -50,
     
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L,dt, V=potential)[0]]
     labels       = ["FFT"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -803,7 +803,7 @@ def exe_CAP(x0          = -30,
         dt2 = dt*2
         # times       = np.linspace(dt, T, t_steps)
         # dt          = T[2] - T[1]
-        psi         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+        psi         = [psi_single_initial(x,x0,sigmap,p0,tau)]
         CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0s[p], R = R_part*L/2)
         Hamiltonian = [make_fft_Hamiltonian(n,L,dt, V = potential - sp.diags(1j*CAP_vector))[0]] # * exp_CAP_vector_dt] # [exp_iH_fft**dt * CAP[1]] # T = (L/4 - x0)/p0
 
@@ -1057,7 +1057,7 @@ def exe_CAP_anim(x0          = -50,
     CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
-    psis         = [psi_single_inital(x,x0,sigmap,p0,tau)]
+    psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ] # * CAP[1]]
     labels       = [r"FFT $\psi$"]
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -1109,46 +1109,49 @@ if __name__ == "__main__":
     # print("\nExercise 2.4:")
     # exe_2_4(pot_2=1, animate=True)
     # exe_2_4(pot_2=0, animate=True)
-    # exe_2_4_anim(pot_2=1)
-
-    # exe_CAP_anim(pot_2=1)
-    print("\nCAP single potential: ")
-    exe_CAP(animate=False, pot_2=0, n_p0=200, do_save=True) 
-    print("\nCAP double potential: ")
-    exe_CAP(animate=False, pot_2=1, n_p0=200, do_save=True) 
     
-    print("\nNo CAP single potential: ")
-    exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .2,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 500,
-            n           = 1024,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 0,
-            animate     = False, 
-            do_save     = True,)
-    print("\nNo CAP double potential: ")
-    exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .2,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 500,
-            n           = 1024,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 1,
-            animate     = False,
-            do_save     = True,)
+    exe_2_4_anim(pot_2=0)
+    exe_CAP_anim(pot_2=0)
+    exe_2_4_anim(pot_2=1)
+    exe_CAP_anim(pot_2=1)
+
+    # print("\nCAP single potential: ")
+    # exe_CAP(animate=False, pot_2=0, n_p0=200, do_save=True) 
+    # print("\nCAP double potential: ")
+    # exe_CAP(animate=False, pot_2=1, n_p0=200, do_save=True) 
+    
+    # print("\nNo CAP single potential: ")
+    # exe_2_4(x0          = -30,
+    #         sigmap      = 0.1,
+    #         p0_min      = .2,
+    #         p0_max      = 6,
+    #         n_p0        = 200,
+    #         tau         = 0,
+    #         L           = 500,
+    #         n           = 1024,
+    #         V0          = 3,
+    #         w           = .5,
+    #         s           = 25,
+    #         d           = 2,
+    #         pot_2       = 0,
+    #         animate     = False, 
+    #         do_save     = True,)
+    # print("\nNo CAP double potential: ")
+    # exe_2_4(x0          = -30,
+    #         sigmap      = 0.1,
+    #         p0_min      = .2,
+    #         p0_max      = 6,
+    #         n_p0        = 200,
+    #         tau         = 0,
+    #         L           = 500,
+    #         n           = 1024,
+    #         V0          = 3,
+    #         w           = .5,
+    #         s           = 25,
+    #         d           = 2,
+    #         pot_2       = 1,
+    #         animate     = False,
+    #         do_save     = True,)
     
     # n2 = int(100/2)
     # x0=-30; sigmap=0.1; tau=0; L=500; n=1024; V0=3; w=.5; s=25; d=2
