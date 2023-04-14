@@ -119,6 +119,9 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
     dx = (np.max(x)-np.min(x))/(n-1)
     k_fft = 2*(np.pi/L)*np.array(list(range(int(-n/2), int(n/2))))
     
+    dtdx2_pi = dt * dx**2 / np.pi
+    dx2_2pi  = dx**2 / (2*np.pi)
+    
     # if there is a CAP we can calculate a lot of values on the fly
     if CAP is not None:
         CAP_vector, exp_CAP_vector_dt, CAP_locs = CAP
@@ -151,7 +154,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
             ax2.set_ylabel(r"$dP/dp$")
             
             # plot initial velocity density function            
-            lines_dP_dp   = [ax2.plot(k_fft, np.fft.fftshift(np.abs(sc.fft.fft(psis_initial[p]))**2) * dx**2 / (2*np.pi), label=plot_labels[p])[0] for p in range(len(psis))]
+            lines_dP_dp   = np.array([ax2.plot(k_fft, np.fft.fftshift(np.abs(sc.fft.fft(psis_initial[p]))**2) * dx**2 / (2*np.pi), label=plot_labels[p])[0] for p in range(len(psis))])
             lines_dP_dp0, =  ax2.plot(k_fft, np.fft.fftshift(np.abs(sc.fft.fft(psis_initial[0]))**2) * dx**2 / (2*np.pi), "--", label="initial", zorder=1) 
                 
             ax2.legend()
@@ -166,7 +169,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         ax.grid()
     
         # plot the initial wave functions
-        lines_psi = [(ax.plot(x, np.abs(psis[p])**2, label=plot_labels[p]))[0] for p in range(len(psis))]
+        lines_psi = np.array([(ax.plot(x, np.abs(psis[p])**2, label=plot_labels[p]))[0] for p in range(len(psis))])
         
         if len(analytical_plot) > 0:
             line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical") # TODO: is behind the grid
@@ -178,7 +181,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
                 line_initial, = ax.plot(x, np.abs(psis_initial[0])**2, 'g--', label=r"$\psi_0$", zorder=2)
             # if there are several distinct initial wave functions
             elif psis_initial.count(psis_initial[0]) == 1:
-                line_initial = [(ax.plot(x, np.abs(psis_initial[i])**2, label=r"$\psi_0$ "+str(plot_labels[i])))[0] for i in range(len(psis))]
+                line_initial = np.array([(ax.plot(x, np.abs(psis_initial[i])**2, label=r"$\psi_0$ "+str(plot_labels[i])))[0] for i in range(len(psis))])
         
         # if we want an outline for V and/or the CAP
         if V_plot is not None or (do_CAP_plot and CAP is not None):
@@ -208,28 +211,31 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         
         plt.title(plot_title + f" t = 0 of {times[-1]}.")
         
-        
+    
+    loc = int(len(psis[0])/2)
     # goes through all the time steps
     for t in tqdm(range(len(times))):
 
         # finds the new values for psi
-        for i in range(len(psis)):
-            psis[i] = time_propagator(psis[i], Hamiltonians[i])
+        for p in range(len(psis)):
+            psis[p] = time_propagator(psis[p], Hamiltonians[p])
             
             # update the CAP values
             if CAP is not None:
-                overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(psis[i][CAP_locs[1]])**2, x[CAP_locs[1]])
-                overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(psis[i][CAP_locs[2]])**2, x[CAP_locs[2]])
+                # overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(psis[p][CAP_locs[1]])**2, x[CAP_locs[1]])
+                # overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(psis[p][CAP_locs[2]])**2, x[CAP_locs[2]])
                 
                 # calculates the Transmission and reflection this timestep
-                Transmission[i] += overlap_R
-                Reflection  [i] += overlap_L
+                Transmission[p] += np.trapz(CAP_vector[CAP_locs[1]] * np.abs(psis[p][CAP_locs[1]])**2, x[CAP_locs[1]]) # overlap_R
+                Reflection  [p] += np.trapz(CAP_vector[CAP_locs[2]] * np.abs(psis[p][CAP_locs[2]])**2, x[CAP_locs[2]]) # overlap_L
                 
                 # calculates the momentum distribution this timestep
-                pis_fourier = np.conj( sc.fft.fft(psis[i]) ) 
-                # dPr_dp[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_r * psis[i]) ) * 2 * dt * dx**2 / (2*np.pi)
-                # dPl_dp[i] += np.real( pis_fourier * sc.fft.fft(CAP_vector_l * psis[i]) ) * 2 * dt * dx**2 / (2*np.pi)
-                dP_dp [i] += np.real( pis_fourier * sc.fft.fft(CAP_vector   * psis[i]) ) 
+                # pis_fourier = np.conj( sc.fft.fft(psis[p]) ) 
+                # dPr_dp[p] += np.real( pis_fourier * sc.fft.fft(CAP_vector_r * psis[p]) ) * 2 * dt * dx**2 / (2*np.pi)
+                # dPl_dp[p] += np.real( pis_fourier * sc.fft.fft(CAP_vector_l * psis[p]) ) * 2 * dt * dx**2 / (2*np.pi)
+                # dP_dp [p] += np.real( pis_fourier * sc.fft.fft(CAP_vector   * psis[p]) ) 
+                dP_dp_change = np.real( np.conj( sc.fft.fft(psis[p])) * sc.fft.fft(CAP_vector   * psis[p]) ) 
+                dP_dp [p] += dP_dp_change # np.real( np.conj( sc.fft.fft(psis[p])) * sc.fft.fft(CAP_vector   * psis[p]) ) 
                 
 
         # we don't update the plot every single time step
@@ -242,14 +248,16 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
                 line_anal.set_ydata( analytical_plot[t] ) # update analytical wave function
             
             # update momentum probability distribution
-            if do_dP_dp_plot:
+            if do_dP_dp_plot and (np.abs(dP_dp_change[loc]) > 1e-1):
+                print(dP_dp_change, dtdx2_pi)
                 if CAP is not None:
-                    phi2 = [np.abs(np.fft.fftshift(i)) for i in (dP_dp * 2 * dt * dx**2 / (2*np.pi))]
+                    # phi2 = [np.abs(np.fft.fftshift(i)) for i in (dP_dp * dtdx2_pi)]
                     for p in range(len(psis)):
-                        lines_dP_dp[p].set_ydata(phi2[p])
+                        # lines_dP_dp[p].set_ydata(phi2[p])
+                        lines_dP_dp[p].set_ydata(np.abs(np.fft.fftshift(dP_dp[p] * dtdx2_pi)))
                 else:
                     for p in range(len(psis)):
-                        lines_dP_dp[p].set_ydata(np.fft.fftshift(np.abs(sc.fft.fft(psis[p]))**2) * dx**2 / (2*np.pi))
+                        lines_dP_dp[p].set_ydata(np.fft.fftshift(np.abs(sc.fft.fft(psis[p]))**2) * dx2_2pi)
             
             plt.title(plot_title + " t = {:.2f} of {:.2f}.".format(times[t], times[-1]))
 
@@ -263,84 +271,80 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
     
     
     if CAP is not None:
-        Transmission = [Transmission[i] * 2 * dt for i in range(len(psis))]
-        Reflection   = [Reflection  [i] * 2 * dt for i in range(len(psis))]
-        Remainder   = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
+        Transmission = Transmission * 2 * dt # [Transmission[i] * 2 * dt for i in range(len(psis))]
+        Reflection   = Reflection   * 2 * dt # [Reflection  [i] * 2 * dt for i in range(len(psis))]
+        Remainder    = np.array([np.sum(np.abs(psis[i])**2) for i in range(len(psis))])
         
-        phi2 = [np.fft.fftshift(i) for i in (dP_dp * 2 * dt * dx**2 / (2*np.pi))]
+        phi2 = np.array([np.fft.fftshift(i) for i in (dP_dp * dtdx2_pi)])
         
         inte = si.simpson(phi2, k_fft) 
         
         return psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft
-    else:
-        
+    
+    else:    
         Transmission_loc  =  np.where(x>midpoint)[0]
-        Transmission_prob = [np.abs(psis[p][Transmission_loc])**2 for p in range(len(psis))]
-        Transmission_pro  = [np.trapz(Transmission_prob[p], x[Transmission_loc]) for p in range(len(psis))]
+        Transmission_prob = np.array([np.abs(psis[p][Transmission_loc])**2 for p in range(len(psis))])
+        Transmission_pro  = np.array([np.trapz(Transmission_prob[p], x[Transmission_loc]) for p in range(len(psis))])
         
         Trapped_loc   =  np.where(np.abs(x)<midpoint)[0]
-        Trapped_prob  = [np.abs(psis[p][Trapped_loc])**2 for p in range(len(psis))]
-        Trapped_pro   = [np.trapz(Trapped_prob[p], x[Trapped_loc]) for p in range(len(psis))]
+        Trapped_prob  = np.array([np.abs(psis[p][Trapped_loc])**2 for p in range(len(psis))])
+        Trapped_pro   = np.array([np.trapz(Trapped_prob[p], x[Trapped_loc]) for p in range(len(psis))])
         
         Reflection_loc  =  np.where(x<=midpoint)[0]
-        Reflection_prob = [np.abs(psis[p][Reflection_loc])**2 for p in range(len(psis))]
-        Reflection_pro  = [np.trapz(Reflection_prob[p], x[Reflection_loc]) for p in range(len(psis))]
+        Reflection_prob = np.array([np.abs(psis[p][Reflection_loc])**2 for p in range(len(psis))])
+        Reflection_pro  = np.array([np.trapz(Reflection_prob[p], x[Reflection_loc]) for p in range(len(psis))])
         
-        phi2 = [np.fft.fftshift(np.abs(sc.fft.fft(psis[p]))**2) * dx**2 / (2*np.pi) for p in range(len(psis))]
+        phi2 = np.array([np.fft.fftshift(np.abs(sc.fft.fft(psis[p]))**2) * dx**2 / (2*np.pi) for p in range(len(psis))])
         
         inte  = si.simpson(phi2, k_fft) 
     
         return psis, Transmission_pro, Reflection_pro, Trapped_pro, phi2, inte, x, k_fft
 
 
-def exe_CAP_anim(x0          = -50,
+def exe_CAP_anim(x0          = -25,
                  sigmap      = 0.1,
                  p0          = 1.8,
                  tau         = 0,
-                 L           = 500,
-                 n           = 1024,
+                 L           = 150,
+                 n           = 512,
                  t_steps     = 500,
                  T0          = 1,
-                 plot_every  = 10,
+                 plot_every  = 3,
                  V0          = 2,
                  w           = 1,
                  s           = 25,
                  d           = 2,
-                 gamma_      = .0045,
-                 R_part      = .8,
+                 gamma_      = .05,
+                 R_part      = .75,
                  pot_2       = 0,
                  ):
 
 
-    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*1., T0))
-    # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
-    # exit()
+    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*2., T0))
 
-    gamma_0 = p0 * 2 / 2000
+    gamma_0 = p0 * 2 / 1000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
-    # h = (np.max(x)-np.min(x))/n # physical step length
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    # regular_potential = rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
     CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
-    psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]
-    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential)[0]] # * CAP[1]]
-    # Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ] # * CAP[1]]
-    labels       = [r"FFT $\psi$"]
+    psis         = np.array([psi_single_initial(x,x0,sigmap,p0,tau)])
+    # Hamiltonians = np.array([make_fft_Hamiltonian(n, L, dt, V = potential)[0]]) 
+    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ]
+    labels       = np.array([r"FFT $\psi$"])
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    # psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
-    #                                                                               CAP = [CAP_vector, exp_CAP_vector_dt, CAP_locs], 
-    #                                                                               plot_labels=labels, V_plot=potential.diagonal(),
-    #                                                                               plot_every=plot_every,) 
-    
     psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
+                                                                                 CAP = [CAP_vector, exp_CAP_vector_dt, CAP_locs], 
                                                                                  plot_labels=labels, V_plot=potential.diagonal(),
-                                                                                 plot_every=plot_every, do_dP_dp_plot=True) 
+                                                                                 plot_every=plot_every,) 
+    
+    # psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
+    #                                                                              plot_labels=labels, V_plot=potential.diagonal(),
+    #                                                                              plot_every=plot_every, do_dP_dp_plot=True) 
     
     plt.show()
 
