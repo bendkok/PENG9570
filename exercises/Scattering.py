@@ -248,7 +248,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
                 line_anal.set_ydata( analytical_plot[t] ) # update analytical wave function
             
             # update momentum probability distribution
-            if do_dP_dp_plot and (np.abs(dP_dp_change[loc]) > 1e-1):
+            if do_dP_dp_plot: # and (np.abs(dP_dp_change[loc]) > 1e-1):
                 print(dP_dp_change, dtdx2_pi)
                 if CAP is not None:
                     # phi2 = [np.abs(np.fft.fftshift(i)) for i in (dP_dp * dtdx2_pi)]
