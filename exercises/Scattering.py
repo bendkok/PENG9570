@@ -99,8 +99,7 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
     CAP_L_locs = np.where(x < -R)[0]
     Gamma_vector           = np.zeros_like(x)
     Gamma_vector[CAP_locs] = gamma_0*(np.abs(x[CAP_locs]) - R)**2  # if abs(x)>R else 0
-    exp_Gamma_vector_dt  = np.exp(-Gamma_vector*dt  )[:,None]  # when actually using Γ we are using one of these formulas
-    return Gamma_vector, exp_Gamma_vector_dt, [CAP_locs, CAP_R_locs, CAP_L_locs]
+    return Gamma_vector, [CAP_locs, CAP_R_locs, CAP_L_locs]
 
 
 def initalise_plot_figures(x, psis_initial, plot_labels, k_fft=None, analytical_plot=[], V_plot=None, final_time=1, CAP_vector=None, do_dP_dp_plot=True, do_CAP_plot=True, do_plot_initial=False, plot_title=""):
@@ -234,7 +233,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
     
     # if there is a CAP we can calculate a lot of values on the fly
     if CAP is not None:
-        CAP_vector, exp_CAP_vector_dt, CAP_locs = CAP
+        CAP_vector, CAP_locs = CAP
         CAP_vector_r = np.zeros_like(CAP_vector)
         CAP_vector_l = np.zeros_like(CAP_vector)
         CAP_vector_r[CAP_locs[1]] = CAP_vector[CAP_locs[1]]
@@ -660,7 +659,7 @@ def run_anim   (x0          = -50,
     dt = T/t_steps
     times = np.linspace(dt, T, t_steps)
 
-    CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
+    CAP_vector, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
     psis         = np.array([psi_single_initial(x,x0,sigmap,p0,tau)])
@@ -670,7 +669,7 @@ def run_anim   (x0          = -50,
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
     psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
-                                                                                 CAP = [CAP_vector, exp_CAP_vector_dt, CAP_locs], 
+                                                                                 CAP = [CAP_vector, CAP_locs], 
                                                                                  plot_labels=labels, V_plot=potential.diagonal(),
                                                                                  plot_every=plot_every, do_dP_dp_plot=True,
                                                                                  do_live_plot=False, do_save_psi=True, do_save_dPdp=True,) 
