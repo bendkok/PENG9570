@@ -153,4 +153,4 @@ cython_debug/
 
 *.pdf
 *.png
-
+*.npy

@@ -103,8 +103,17 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
     return Gamma_vector, exp_Gamma_vector_dt, [CAP_locs, CAP_R_locs, CAP_L_locs]
 
 
-def initalise_plot_figures(x, dx, k_fft, psis_initial, analytical_plot, V_plot, plot_labels, final_time=1, CAP_vector=None, do_dP_dp_plot=True, do_CAP_plot=True, do_plot_initial=False, plot_title=""):
+def initalise_plot_figures(x, psis_initial, plot_labels, k_fft=None, analytical_plot=[], V_plot=None, final_time=1, CAP_vector=None, do_dP_dp_plot=True, do_CAP_plot=True, do_plot_initial=False, plot_title=""):
     # WIP
+    
+    n = len(x)
+    L = 2*np.max(x)
+    dx = (np.max(x)-np.min(x))/(n-1)
+    if k_fft is None:
+        k_fft = 2*(np.pi/L)*np.array(list(range(int(-n/2), int(n/2))))
+    
+    # axes = [None]*3
+    # line = [None]*8
     
     plt.ion()
     
@@ -125,9 +134,14 @@ def initalise_plot_figures(x, dx, k_fft, psis_initial, analytical_plot, V_plot, 
         lines_dP_dp0, = ax2.plot(k_fft, np.fft.fftshift(np.abs(sc.fft.fft(psis_initial[0]))**2) * dx**2 / (2*np.pi), "--", label="initial", zorder=1) 
             
         ax2.legend()
+        # axes[1] = ax2
         
     else:
         figure, ax = plt.subplots(figsize=(12, 8))
+        ax2 = None
+        
+        lines_dP_dp  = None
+        lines_dP_dp0 = None
         
     # make the plots look a bit nicer
     ax.set_ylim(top = np.max(np.abs(psis_initial[0])**2)*2.2, bottom=-0.01)
@@ -140,6 +154,8 @@ def initalise_plot_figures(x, dx, k_fft, psis_initial, analytical_plot, V_plot, 
     
     if len(analytical_plot) > 0:
         line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical") # TODO: is behind the grid
+    else:
+        line_anal = None
     
     # if we want to allways show the initial wave function in the background
     if do_plot_initial:
@@ -149,6 +165,8 @@ def initalise_plot_figures(x, dx, k_fft, psis_initial, analytical_plot, V_plot, 
         # if there are several distinct initial wave functions
         elif psis_initial.count(psis_initial[0]) == 1:
             line_initial = np.array([(ax.plot(x, np.abs(psis_initial[i])**2, label=r"$\psi_0$ "+str(plot_labels[i])))[0] for i in range(len(psis_initial))])
+    else:
+        line_initial = None
     
     # if we want an outline for V and/or the CAP
     if V_plot is not None or (do_CAP_plot and CAP_vector is not None):
@@ -156,6 +174,8 @@ def initalise_plot_figures(x, dx, k_fft, psis_initial, analytical_plot, V_plot, 
         
         if V_plot is not None:
             line_V, = ax_p.plot(x, V_plot, '--', color='tab:orange', label="Potential Barrier", zorder=2)
+        else:
+            line_V = None
         
         # plot CAP outline, and add to legend
         if do_CAP_plot and CAP_vector is not None:
@@ -168,23 +188,37 @@ def initalise_plot_figures(x, dx, k_fft, psis_initial, analytical_plot, V_plot, 
             ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
             ax.patch.set_visible(False)  # hide the 'canvas'
             ax_p.patch.set_visible(True) # show the 'canvas'
+        else:
+            line_CAP = None
         
         align_yaxis(ax, ax_p, 1.3)
         ax_p.set_ylabel("Potential")
+        
+        # axes[2] = ax_p
     
     # if not we just add a legend
     else:
         ax.legend()
+        ax_p = None
+        
+        line_V   = None
+        line_CAP = None
     
     figure.suptitle(plot_title + f" t = 0 of {final_time}.")
     
-    return figure, ax, ax2, ax_p, lines_dP_dp, lines_dP_dp0, lines_psi, line_anal, line_initial, line_initial, line_V, line_CAP
+    # axes[0] = ax
+    
+    return figure, ax, ax2, ax_p, lines_psi, lines_dP_dp, lines_dP_dp0, line_anal, line_initial, line_V, line_CAP
+    # return figure, axes, lines_dP_dp, lines_dP_dp0, lines_psi, line_anal, line_initial, line_V, line_CAP
 
 
-def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_propagator, do_live_plot=True, do_dP_dp_plot=True, plot_every=1, plot_labels=[], analytical_plot=[], do_plot_initial=True, V_plot=None, CAP=None, do_CAP_plot=True, plot_title="Scattering.", midpoint=0):
+def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_propagator, do_live_plot=True, do_dP_dp_plot=True, plot_every=1, plot_labels=[], analytical_plot=[], do_plot_initial=True, V_plot=None, CAP=None, do_save_psi=False, do_save_dPdp=False, do_CAP_plot=True, plot_title="Scattering.", midpoint=0):
     """
     Solves the TDSE for the given Ψs and Hamiltonians. The result can be plotted live if do_live_plot is True.
     """
+    
+    if len(times) % plot_every != 0:
+        print("WARNING: The length of times should be divisible by plot_every.")        
     
     psis = psis_initial
     
@@ -318,7 +352,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
                 for func in funcs_plot_list:
                     func(abs_psi, abs_psi2)
                 
-            plt.title(plot_title + " t = {:.2f} of {:.2f}.".format(times[t], times[-1]))
+            plt.title(plot_title + " t = {:.2f} of {:.2f}.".format(times[t-1], times[-1]))
 
             # drawing updated values
             figure.canvas.draw()
@@ -327,10 +361,29 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
             # loop until all UI events
             # currently waiting have been processed
             figure.canvas.flush_events()
+            
+    def save_psis():
+        # we don't save every single time step
+        if t % plot_every == 0:
+            # for p in range(len(psis)):
+            np.save(savename_psi.format(t), psis)
+            
+    def save_dPdp():
+        # we don't save every single time step
+        if t % plot_every == 0:
+            # for p in range(len(psis)):
+            np.save(savename_dPdp.format(t), np.fft.fftshift(np.abs(sc.fft.fft(psis))**2) * dx2_2pi)
+            
+    def save_dPdp_CAP():
+        # we don't save every single time step
+        if t % plot_every == 0:
+            # for p in range(len(psis)):
+            np.save(savename_dPdp.format(t), np.abs(np.fft.fftshift(dP_dp * dtdx2_pi)))
     
     def update_anal_plot(abs_psi=None, abs_psi2=None):
         line_anal.set_ydata( analytical_plot[t] ) # update analytical wave function
     
+    p=0
     def update_dPdp_plot_CAP(abs_psi=None, abs_psi2=None):
         # for p in range(len(psis)):
         # lines_dP_dp[p].set_ydata(np.fft.fftshift(abs_psi * dtdx2_pi))
@@ -350,6 +403,24 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
     if do_live_plot:
         funcs_list.append(update_plots)
     
+    if do_save_psi:
+        # this gives a savename with an appropiate amount of 0s
+        np.save("psi_results/x_vector", x)
+        np.save("psi_results/V_plot", V_plot)
+        if CAP is not None:
+            np.save("psi_results/CAP_vector", CAP_vector)
+        savename_psi = f"psi_results/psi_{'CAP' if CAP is not None else 'reg'}_" + "{:0"+str(int(np.log10(len(times)))+1)+"}" 
+        funcs_list.append(save_psis)
+        
+    if do_save_dPdp:
+        # this gives a savename with an appropiate amount of 0s
+        np.save("psi_results/k_vector", k_fft)
+        savename_dPdp = f"psi_results/dPdp_{'CAP' if CAP is not None else 'reg'}_" + "{:0"+str(int(np.log10(len(times)))+1)+"}" # "{:05}"
+        if CAP is not None:
+            funcs_list.append(save_dPdp_CAP)
+        else:
+            funcs_list.append(save_dPdp)
+    
     if len(analytical_plot) > 0: 
         funcs_plot_list.append(update_anal_plot)
     
@@ -360,16 +431,21 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         else:
             funcs_plot_list.append(update_dPdp_plot)
     
+    
     # goes through all the time steps
     for t in tqdm(range(len(times))):
-
+        
+        for func in funcs_list:
+            func()
+            
         # finds the new values for psi
         for p in range(len(psis)):
             psis[p] = time_propagator(psis[p], Hamiltonians[p])
             
-        for func in funcs_list:
-            func()
-            
+    # ensure that we also get the final timestep
+    t = len(times)
+    for func in funcs_list:
+        func()        
             # update the CAP values
             # if CAP is not None:
             #     # calculates the Transmission and reflection this timestep
@@ -414,10 +490,10 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         #     # currently waiting have been processed
         #     figure.canvas.flush_events()
     
-    
-    # makes the plot window stay up until it is closed
-    plt.ioff()
-    plt.show()
+    if do_live_plot:
+        # makes the plot window stay up until it is closed
+        plt.ioff()
+        plt.show()
     
     
     if CAP is not None:
@@ -451,23 +527,111 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         return psis, Transmission_pro, Reflection_pro, Trapped_pro, phi2, inte, x, k_fft
 
 
-# def exe_CAP_anim(x0          = -25,
-#                  sigmap      = 0.1,
-#                  p0          = 1.8,
-#                  tau         = 0,
-#                  L           = 150,
-#                  n           = 1024,
-#                  t_steps     = 1000,
-#                  T0          = 1,
-#                  plot_every  = 25,
-#                  V0          = 2,
-#                  w           = 1,
-#                  s           = 25,
-#                  d           = 2,
-#                  gamma_      = .05,
-#                  R_part      = .75,
-#                  pot_2       = 0,
-#                  ):
+def load_and_plot(times, plot_every=1, use_CAP=True, do_CAP_plot=True, do_dP_dp_plot=True, plot_title="Scattering"):
+    
+    x = np.load("psi_results/x_vector.npy")
+    k = np.load("psi_results/k_vector.npy")
+    
+    V_plot = np.load("psi_results/V_plot.npy")
+    if use_CAP:
+        CAP_vector = np.load("psi_results/CAP_vector.npy")
+    else:
+        CAP_vector = None
+    
+    if use_CAP:
+        psis_initial = np.load("psi_results/psi_CAP_"+"0"*(int(np.log10(len(times)))+1)+".npy")
+    else:
+        psis_initial = np.load("psi_results/psi_reg_"+"0"*(int(np.log10(len(times)))+1)+".npy")
+    
+    plot_labels = ["psi" for i in range(len(psis_initial))]
+    
+    # initalise_plot_figures(x, psis_initial, plot_labels, k=k, V_plot=V_plot, final_time=times[-1], CAP_vector=CAP_vector, do_dP_dp_plot=do_dP_dp_plot, do_CAP_plot=use_CAP, do_plot_initial=True, plot_title="Scattering")
+    n = len(x)
+    L = 2*np.max(x)
+    dx = (np.max(x)-np.min(x))/(n-1)
+    if k is None:
+        k = 2*(np.pi/L)*np.array(list(range(int(-n/2), int(n/2))))
+    
+    
+    if True: # TODO: consider moving this to another function
+    
+        plt.ion()
+        
+        sns.set_theme(style="dark") # nice plots
+    
+        # here we are creating sub plots
+        if do_dP_dp_plot:
+            # create subplots
+            figure, (ax, ax2) = plt.subplots(2, 1, figsize=(12, 9.5), layout='constrained')
+            figure.subplots_adjust(hspace=0.5)
+            
+            ax2.grid()
+            ax2.set_xlabel(r"$k$")
+            ax2.set_ylabel(r"$dP/dp$")
+            
+            # plot initial velocity density function            
+            lines_dP_dp   = np.array([ax2.plot(k, np.fft.fftshift(np.abs(sc.fft.fft(psis_initial[p]))**2) * dx**2 / (2*np.pi), label=plot_labels[p])[0] for p in range(len(psis_initial))])
+            lines_dP_dp0, =  ax2.plot(k, np.fft.fftshift(np.abs(sc.fft.fft(psis_initial[0]))**2) * dx**2 / (2*np.pi), "--", label="Initial", zorder=1) 
+                
+            ax2.legend()
+            
+        else:
+            figure, ax = plt.subplots(figsize=(12, 8))
+            
+        # make the plots look a bit nicer
+        ax.set_ylim(top = np.max(np.abs(psis_initial[0])**2)*2.2, bottom=-0.01)
+        ax.set_xlabel(r"$x$")
+        ax.set_ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
+        ax.grid()
+    
+        # plot the initial wave functions
+        lines_psi = np.array([(ax.plot(x, np.abs(psis_initial[p])**2, label=plot_labels[p]))[0] for p in range(len(psis_initial))])
+        
+        # if len(analytical_plot) > 0:
+        #     line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical") # TODO: is behind the grid
+        
+        # if we want to allways show the initial wave function in the background
+        if True: # do_plot_initial:
+            # if there is only one wave function, or their initial value are the same
+            if len(psis_initial) == 1 or (psis_initial[0] == psis_initial[1]).all(): # or psis_initial.count(psis_initial[0]) > 1:
+                line_initial, = ax.plot(x, np.abs(psis_initial[0])**2, 'g--', label=r"$\psi_0$", zorder=2)
+            # if there are several distinct initial wave functions
+            elif psis_initial.count(psis_initial[0]) == 1:
+                line_initial = np.array([(ax.plot(x, np.abs(psis_initial[i])**2, label=r"$\psi_0$ "+str(plot_labels[i])))[0] for i in range(len(psis_initial))])
+        
+        # if we want an outline for V and/or the CAP
+        if V_plot is not None or (do_CAP_plot and use_CAP):
+            ax_p = ax.twinx()
+            
+            if V_plot is not None:
+                line_V, = ax_p.plot(x, V_plot, '--', color='tab:orange', label="Potential Barrier", zorder=2)
+            
+            # plot CAP outline, and add to legend
+            if do_CAP_plot and use_CAP:
+                line_CAP, = ax_p.plot(x, CAP_vector*np.max(V_plot)/np.max(CAP_vector), 'r--', label="CAP") # TODO: change scaling here
+                
+                lines, labels = ax.get_legend_handles_labels()
+                lines2, labels2 = ax_p.get_legend_handles_labels()
+                ax.legend(lines + lines2, labels + labels2, loc=1)
+        
+                ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
+                ax.patch.set_visible(False)  # hide the 'canvas'
+                ax_p.patch.set_visible(True) # show the 'canvas'
+            
+            align_yaxis(ax, ax_p, 1.3)
+            ax_p.set_ylabel("Potential")
+        
+        # if not we just add a legend
+        else:
+            ax.legend()
+        
+        plt.title(plot_title + f" t = 0 of {times[-1]}.")
+      
+    
+    
+    # makes the plot window stay up until it is closed
+    plt.ioff()
+    plt.show()
     
     
 def run_anim   (x0          = -50,
@@ -478,7 +642,7 @@ def run_anim   (x0          = -50,
                 n           = 2048,
                 t_steps     = 1000,
                 T0          = 1,
-                plot_every  = 8,
+                plot_every  = 5,
                 V0          = 2,
                 w           = 1,
                 s           = 25,
@@ -505,16 +669,20 @@ def run_anim   (x0          = -50,
     labels       = np.array([r"FFT $\psi$"])
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    # psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
-    #                                                                              CAP = [CAP_vector, exp_CAP_vector_dt, CAP_locs], 
-    #                                                                              plot_labels=labels, V_plot=potential.diagonal(),
-    #                                                                              plot_every=plot_every, do_dP_dp_plot=True,
-    #                                                                              do_live_plot=True, ) 
-    
     psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
+                                                                                 CAP = [CAP_vector, exp_CAP_vector_dt, CAP_locs], 
                                                                                  plot_labels=labels, V_plot=potential.diagonal(),
-                                                                                 plot_every=plot_every, do_dP_dp_plot=True, 
-                                                                                 do_live_plot=True, ) 
+                                                                                 plot_every=plot_every, do_dP_dp_plot=True,
+                                                                                 do_live_plot=False, do_save_psi=True, do_save_dPdp=True,) 
+    
+    load_and_plot(times, plot_every, use_CAP=False)
+    
+    # psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
+    #                                                                              plot_labels=labels, V_plot=potential.diagonal(),
+    #                                                                              plot_every=plot_every, do_dP_dp_plot=True, 
+    #                                                                              do_live_plot=False, do_save_psi=True, do_save_dPdp=True,) 
+    
+    # load_and_plot(times, plot_every, use_CAP=True)
     
     plt.show()
 
