@@ -832,10 +832,11 @@ def exe_CAP(x0          = -30,
             #     print("")
             # if res_psi[0].shape < np.max(CAP_locs[1]):
             #     print("")
+            
+            # calculates the transmission and refflection this timestep
             overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(res_psi[0][CAP_locs[1]])**2, x[CAP_locs[1]])
             overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(res_psi[0][CAP_locs[2]])**2, x[CAP_locs[2]])
             
-            # calculates the transmission and refflection this timestep
             Transmission[p] += overlap_R
             Reflection  [p] += overlap_L
             
@@ -1116,9 +1117,9 @@ if __name__ == "__main__":
     exe_CAP_anim(pot_2=1)
 
     # print("\nCAP single potential: ")
-    # exe_CAP(animate=False, pot_2=0, n_p0=200, do_save=True) 
+    # exe_CAP(animate=False, pot_2=0, n_p0=200, L=300, t_steps=250, do_save=True) 
     # print("\nCAP double potential: ")
-    # exe_CAP(animate=False, pot_2=1, n_p0=200, do_save=True) 
+    # exe_CAP(animate=False, pot_2=1, n_p0=200, L=300, t_steps=250, do_save=True) 
     
     # print("\nNo CAP single potential: ")
     # exe_2_4(x0          = -30,
@@ -1127,8 +1128,8 @@ if __name__ == "__main__":
     #         p0_max      = 6,
     #         n_p0        = 200,
     #         tau         = 0,
-    #         L           = 500,
-    #         n           = 1024,
+    #         L           = 700,
+    #         n           = 2048,
     #         V0          = 3,
     #         w           = .5,
     #         s           = 25,
@@ -1143,8 +1144,8 @@ if __name__ == "__main__":
     #         p0_max      = 6,
     #         n_p0        = 200,
     #         tau         = 0,
-    #         L           = 500,
-    #         n           = 1024,
+    #         L           = 700,
+    #         n           = 2048,
     #         V0          = 3,
     #         w           = .5,
     #         s           = 25,
