@@ -533,7 +533,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
 
 
 
-def load_and_plot(load_folder="psi_results", plot_every=1, use_CAP=True, do_CAP_plot=True, do_dP_dp_plot=True, plot_title="Scattering"):
+def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_dP_dp_plot=True, plot_title="Scattering"):
     
     x = np.load(load_folder+"/x_vector.npy")
     k = np.load(load_folder+"/k_vector.npy")
@@ -566,7 +566,8 @@ def load_and_plot(load_folder="psi_results", plot_every=1, use_CAP=True, do_CAP_
         
         dPdp_initial = np.fft.fftshift(np.abs(sc.fft.fft(psis_initial_flat))**2) * dx2_2pi # np.load(load_dPdp.format(0)) # np.load(load_folder+"/dPdp_CAP_"+"0"*(int(np.log10(len(times)))+1)+".npy")
     
-    plot_labels = ["psi" for i in range(len(psis_initial))]
+    # plot_labels = [r"$\psi$" for i in range(len(psis_initial))]
+    plot_labels = ["Wave Function" for i in range(len(psis_initial))]
     
     
     # plt.ion()
@@ -576,8 +577,8 @@ def load_and_plot(load_folder="psi_results", plot_every=1, use_CAP=True, do_CAP_
     # here we are creating sub plots
     if do_dP_dp_plot:
         # create subplots
-        figure, (ax, ax2) = plt.subplots(2, 1, figsize=(12, 9.5)) # , layout='constrained')
-        figure.subplots_adjust(hspace=0.5)
+        figure, (ax, ax2) = plt.subplots(2, 1, figsize=(12, 9.5), layout='constrained')
+        # figure.subplots_adjust(hspace=0.5)
         
         ax2.grid()
         ax2.set_xlabel(r"$k$")
@@ -601,8 +602,6 @@ def load_and_plot(load_folder="psi_results", plot_every=1, use_CAP=True, do_CAP_
     # plot the initial wave functions
     lines_psi = [(ax.plot(x, psis_initial[p], label=plot_labels[p]))[0] for p in range(len(psis_initial))]
     
-    # if len(analytical_plot) > 0:
-    #     line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical") # TODO: is behind the grid
     
     # we allways show the initial wave function in the background
     # if there is only one wave function, or their initial value are the same
@@ -612,7 +611,7 @@ def load_and_plot(load_folder="psi_results", plot_every=1, use_CAP=True, do_CAP_
     # if there are several distinct initial wave functions
     elif psis_initial.count(psis_initial[0]) == 1:
         # line_initial = np.array([(ax.plot(x, np.abs(psis_initial[i])**2, label=r"$\psi_0$ "+str(plot_labels[i])))[0] for i in range(len(psis_initial))])
-        line_initial = np.array([(ax.plot(x, psis_initial[i], label=r"$\psi_0$ "+str(plot_labels[i])))[0] for i in range(len(psis_initial))])
+        line_initial = np.array([(ax.plot(x, psis_initial[i], label=r"Initial $\psi$ "+str(plot_labels[i])))[0] for i in range(len(psis_initial))])
     
     # if we want an outline for V and/or the CAP
     if V_plot is not None or (do_CAP_plot and use_CAP):
@@ -632,86 +631,71 @@ def load_and_plot(load_folder="psi_results", plot_every=1, use_CAP=True, do_CAP_
             ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
             ax.patch.set_visible(False)  # hide the 'canvas'
             ax_p.patch.set_visible(True) # show the 'canvas'
+        else:
+            lines, labels = ax.get_legend_handles_labels()
+            lines2, labels2 = ax_p.get_legend_handles_labels()
+            ax.legend(lines + lines2, labels + labels2, loc=1)
+    
+            ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
+            ax.patch.set_visible(False)  # hide the 'canvas'
+            ax_p.patch.set_visible(True) # show the 'canvas
         
         align_yaxis(ax, ax_p, 1.3)
-        ax_p.set_ylabel("Potential")
+        # ax_p.set_ylabel("Potential")
     
     # if not we just add a legend
     else:
         ax.legend()
     
-    plt.title(plot_title + f" t = 0 of {times[-1]}.")
-    lines = lines_psi + lines_dP_dp
+    time_text = ax.text(.07, 0.95, f" t = 0 of {times[-1]}.", bbox=dict(facecolor='none', edgecolor='red'), horizontalalignment='left',verticalalignment='top', transform=ax.transAxes) # fig.suptitle("t = {:d} of {:d}.".format(0, 200)) 
+    plt.title(plot_title) # + f" t = 0 of {times[-1]}.")
+    if do_dP_dp_plot:
+        lines_psi = lines_psi + lines_dP_dp
     
     def animate(i):
         
         psis = np.load(load_psi.format(i))
         [lines_psi[p].set_ydata(psis[p]) for p in range(len(psis))]
-
-        plt.title(plot_title + "t = {:.2f} of {:.2f}.".format(times[i], times[-1]))
+        time_text.set_text("t = {:.2f} of {:.2f} au".format(times[i], times[-1]))
         
         # update momentum probability distribution
         if do_dP_dp_plot: 
             dPdp = np.load(load_dPdp.format(i))
             for p in range(len(psis)):
-                lines_dP_dp[p].set_ydata(dPdp[p])
+                lines_psi[len(psis)+p].set_ydata(dPdp[p])
                 
-        return lines
+        return lines_psi + [time_text,]
     
     # We'd normally specify a reasonable "interval" here...
-    ani = animation.FuncAnimation(figure, animate, range(1, 200), 
-                                  interval=100, blit=True)
+    ani = animation.FuncAnimation(figure, animate, range(1, len(times)), 
+                                  interval=int(10/dt), blit=True)
+    
+    
+    # saving to m4 using ffmpeg writer
+    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/bendikst/OneDrive - OsloMet/Dokumenter/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe' # replace wiht your local path
+    writervideo = animation.FFMpegWriter(fps=30,bitrate=50000)
+    ani.save(load_folder+f"/animation_{'CAP' if use_CAP else 'reg'}.mp4", dpi=500, writer=writervideo, )
     plt.show()
     
-    # for i,t in enumerate(tqdm(times)):
-        
-    #     if i % plot_every == 0:
-            
-    #         psis = np.load(load_psi.format(i))
-    #         [lines_psi[p].set_ydata(psis[p]) for p in range(len(psis))]
+    
+def run_anim_CAP(x0          = -30,
+                 sigmap      = 0.1,
+                 p0          = 1.9,
+                 tau         = 0,
+                 L           = 200,
+                 n           = 512,
+                 t_steps     = 200,
+                 T0          = None,
+                 V0          = 2,
+                 w           = 1,
+                 s           = 25,
+                 d           = 2,
+                 gamma_      = .05,
+                 R_part      = .75,
+                 pot_2       = 1,
+                 ):
 
-    #         plt.title(plot_title + "t = {:.2f} of {:.2f}.".format(t, times[-1]))
-            
-    #         # update momentum probability distribution
-    #         if do_dP_dp_plot: 
-    #             dPdp = np.load(load_dPdp.format(i))
-    #             for p in range(len(psis)):
-    #                 lines_dP_dp[p].set_ydata(dPdp[p])
-        
-    #         # drawing updated values
-    #         figure.canvas.draw()
-
-    #         # This will run the GUI event
-    #         # loop until all UI events
-    #         # currently waiting have been processed
-    #         figure.canvas.flush_events() # TODO: This is very slow!
-    
-    
-    
-    # # makes the plot window stay up until it is closed
-    # plt.ioff()
-    # plt.show()
-    
-    
-def run_anim   (x0          = -50,
-                sigmap      = 0.1,
-                p0          = 1.8,
-                tau         = 0,
-                L           = 300,
-                n           = 512,
-                t_steps     = 100,
-                T0          = 1,
-                plot_every  = 1,
-                V0          = 2,
-                w           = 1,
-                s           = 25,
-                d           = 2,
-                gamma_      = .05,
-                R_part      = .75,
-                pot_2       = 0,
-                ):
-
-    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*1., T0))
+    T = T0 if T0 is not None else 2*(L/4 + np.abs(x0))/np.abs(p0)
 
     gamma_0 = p0 * 2 / 1000
 
@@ -723,31 +707,61 @@ def run_anim   (x0          = -50,
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
 
     psis         = np.array([psi_single_initial(x,x0,sigmap,p0,tau)])
-    Hamiltonians = np.array([make_fft_Hamiltonian(n, L, dt, V = potential)[0]]) 
-    # Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ]
+    Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ]
     labels       = np.array([r"FFT $\psi$"])
-    # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
-    # psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
-    #                                                                              CAP = [CAP_vector, CAP_locs], 
-    #                                                                              plot_labels=labels, V_plot=potential.diagonal(),
-    #                                                                              plot_every=plot_every, do_dP_dp_plot=True,
-    #                                                                              do_live_plot=False, do_save_psi=True, do_save_dPdp=True,) 
+    psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
+                                                                                 CAP = [CAP_vector, CAP_locs], 
+                                                                                 plot_labels=labels, V_plot=potential.diagonal(),
+                                                                                 do_dP_dp_plot=True, do_live_plot=False, 
+                                                                                 do_save_psi=True, do_save_dPdp=True,) 
     
-    # load_and_plot(times, plot_every, use_CAP=False)
+    load_and_plot(use_CAP=True)
+    
+
+
+def run_anim_reg(x0          = -30,
+                 sigmap      = 0.1,
+                 p0          = 1.9,
+                 tau         = 0,
+                 L           = 500,
+                 n           = 1024,
+                 t_steps     = 200,
+                 T0          = None,
+                 V0          = 2,
+                 w           = 1,
+                 s           = 25,
+                 d           = 2,
+                 pot_2       = 1,
+                 ):
+
+    T = T0 if T0 is not None else (L/4 + np.abs(x0))/np.abs(p0)
+
+    x = np.linspace(-L/2, L/2, n) # physical grid
+    dt = T/t_steps
+    times = np.linspace(dt, T, t_steps)
+
+    potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
+
+    psis         = np.array([psi_single_initial(x,x0,sigmap,p0,tau)])
+    Hamiltonians = np.array([make_fft_Hamiltonian(n, L, dt, V = potential)[0]]) 
+    labels       = np.array([r"FFT $\psi$"])
+
     
     psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
                                                                                  plot_labels=labels, V_plot=potential.diagonal(),
-                                                                                 plot_every=plot_every, do_dP_dp_plot=True, 
-                                                                                 do_live_plot=False, do_save_psi=True, do_save_dPdp=True,) 
+                                                                                 do_dP_dp_plot=True, do_live_plot=False, 
+                                                                                 do_save_psi=True, do_save_dPdp=True,) 
     
-    load_and_plot(plot_every=plot_every, use_CAP=False, do_dP_dp_plot=True)
+    load_and_plot(use_CAP=False, do_dP_dp_plot=True)
     
     plt.show()
 
 
+
 def main():    
-    run_anim()
+    run_anim_CAP()
+    run_anim_reg()
 
 
 if __name__ == "__main__":

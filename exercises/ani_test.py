@@ -5,9 +5,9 @@ import numpy as np
 x = np.arange(0, 2*np.pi, 0.1)
 y = np.sin(x)
 
-fig, axes = plt.subplots(nrows=6)
+fig, axes = plt.subplots(nrows=7)
 
-styles = ['r-', 'g--', 'yo', 'm^', 'k-.', 'ch']
+styles = ['r-', 'g--', 'y1', 'm^', 'k*', 'ch', 'bo']
 def plot(ax, style):
     return ax.plot(x, y, style, animated=True, label="start")[0] 
 lines = [plot(ax, style) for ax, style in zip(axes, styles)]
