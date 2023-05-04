@@ -13,6 +13,7 @@ import scipy.integrate as si
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
+from time import time
 # import time
 
 sns.set_theme(style="dark") # nice plots
@@ -404,7 +405,8 @@ def exe_1_8(x0          = -20,
 
 
 def rectangular_potential(x, V0, s, w):
-    return sp.diags( V0 / (1 + np.exp(s * (np.abs(x) - w/2))))
+    adjust = x[np.where(np.min(np.abs(x)) == np.abs(x))[0]] # we adjust the grid slightly so that the peak is exactly V0
+    return sp.diags( V0 / (1 + np.exp(s * (np.abs(x-adjust) - w/2))))
 
 
 def exe_2_1(x0          = -50,
@@ -616,7 +618,7 @@ def exe_2_4(x0          = -30,
     # check if it is properly normalised
     print(f"Max norm: {np.max(norms)}. Min norm: {np.min(norms)}.") # should be ~1
     X,Y = np.meshgrid(p0s, k_fft)
-    plt.contourf(X,Y, phi2s.T, norm="log")
+    plt.contourf(X,Y, phi2s.T) # , , norm="log")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.colorbar(label=r"$dP/dp$")
@@ -645,9 +647,12 @@ def exe_2_4(x0          = -30,
 
     if animate:
         n2 = int(n_p0/2)
-        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),1,V0,w,s,d)
-        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),1,V0,w,s,d)
-        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),1,V0,w,s,d)
+        print(p0s[ 0])
+        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),5,V0,w,s,d)
+        print(p0s[n2])
+        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),5,V0,w,s,d)
+        print(p0s[-1])
+        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),5,V0,w,s,d)
         
     return p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
 
@@ -782,7 +787,7 @@ def exe_CAP(x0          = -30,
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     p0s = np.linspace(p0_min, p0_max, n_p0)
-    gamma_0s = p0s * 3 / 1000
+    gamma_0s = p0s * 6 / 1000
 
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
@@ -984,7 +989,7 @@ def exe_CAP(x0          = -30,
     # print(f"Max norm: {np.max(inte)}. Min norm: {np.min(inte)}. Mean norm: {np.mean(inte)}.") # should be ~1
     X,Y = np.meshgrid(p0s, k_fft)
     # plt.contourf(X,Y, phi2s.T, norm="log")
-    plt.contourf(X,Y, np.abs(phi2s.T), norm="log")
+    plt.contourf(X,Y, np.abs(phi2s.T)) # , , norm="log")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.colorbar(label=r"$dP/dp$")
@@ -1116,6 +1121,9 @@ def exe_CAP_anim(x0          = -50,
 
 
 if __name__ == "__main__":
+    
+    start_time = time()
+    
     # print("Exercise 1.5:")
     # exe_1_5()
     # print("\nExercise 1.6:")
@@ -1139,48 +1147,65 @@ if __name__ == "__main__":
     # exe_CAP_anim(pot_2=1)
     
     savename = "att1"
+    
+    p0_min  = .3
+    p0_max  = 6
+    n_p0    = 200
+    anim    = False
 
     print("\nCAP single potential: ")
-    cap_sing = exe_CAP(animate=False, x0=-30, p0_min=.3, pot_2=0, n_p0=200, L=400, t_steps=500, do_save=True, save_name=savename) 
+    cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=1024, t_steps=300, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
-    cap_doub = exe_CAP(animate=False, x0=-30, p0_min=.3, pot_2=1, n_p0=200, L=400, t_steps=500, do_save=True, save_name=savename) 
+    cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=1024, t_steps=300, do_save=True, save_name=savename) 
     # p0s,Transmission,Reflection,Reaminader,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
     reg_sing = exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .3,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 800,
-            n           = 2048,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 0,
-            animate     = False, 
-            do_save     = True,
-            save_name   = savename,)
+                       sigmap      = 0.1,
+                       p0_min      = p0_min,
+                       p0_max      = p0_max,
+                       n_p0        = n_p0,
+                       tau         = 0,
+                       L           = 800,
+                       n           = 2048,
+                       V0          = 3,
+                       w           = .5,
+                       s           = 25,
+                       d           = 2,
+                       pot_2       = 0,
+                       animate     = anim, 
+                       do_save     = True,
+                       save_name   = savename,)
     print("\nNo CAP double potential: ")
     reg_doub = exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .3,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 800,
-            n           = 2048,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 1,
-            animate     = False,
-            do_save     = True,
-            save_name   = savename,)
+                       sigmap      = 0.1,
+                       p0_min      = p0_min,
+                       p0_max      = p0_max,
+                       n_p0        = n_p0,
+                       tau         = 0,
+                       L           = 800,
+                       n           = 2048,
+                       V0          = 3,
+                       w           = .5,
+                       s           = 25,
+                       d           = 2,
+                       pot_2       = 1,
+                       animate     = anim,
+                       do_save     = True,
+                       save_name   = savename,)
     # p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
+    
+    plt.plot(reg_doub[0], np.abs((reg_doub[1] - cap_doub[1])/reg_doub[1]), label="T double")
+    plt.plot(reg_doub[0], np.abs((reg_doub[2] - cap_doub[2])/reg_doub[2]), label="R double")
+    plt.plot(reg_doub[0], np.abs((reg_sing[1] - cap_sing[1])/reg_sing[1]), label="T single")
+    plt.plot(reg_doub[0], np.abs((reg_sing[2] - cap_sing[2])/reg_sing[2]), label="R single")
+    plt.legend()
+    plt.xlabel(r"$p_0$")
+    plt.ylabel("Difference") # TODO: find better name
+    plt.grid()
+    plt.title("Relative difference between CAP and regular simulation.")
+    plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
+    plt.show()
     
     plt.plot(reg_doub[0], np.abs(reg_doub[1] - cap_doub[1]), label="T double")
     plt.plot(reg_doub[0], np.abs(reg_doub[2] - cap_doub[2]), label="R double")
@@ -1190,13 +1215,15 @@ if __name__ == "__main__":
     plt.xlabel(r"$p_0$")
     plt.ylabel("Difference") # TODO: find better name
     plt.grid()
-    plt.title("Absoulte difference between CAP and regular simulation.")
-    plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
+    plt.title("Absolute difference between CAP and regular simulation.")
+    plt.savefig("TR_results/"+savename+"_TR_abs_diff.pdf") 
     plt.show()
     
     
-    X,Y = np.meshgrid(reg_doub[0], reg_doub[-2])
-    plt.contourf(X,Y, np.abs(reg_doub[-1] - cap_doub[-1]), label="T double", norm="log")
+    X,Y   = np.meshgrid(reg_doub[0], reg_doub[-2])
+    X0,Y0 = np.meshgrid(cap_doub[0], cap_doub[-2])
+    plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=1., antialiased=True) # , label="T double") # , norm="log")
+    plt.contourf(X0,Y0, np.abs(cap_doub[-1].T), alpha=.5, antialiased=True)
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.colorbar(label="Difference")
@@ -1204,7 +1231,8 @@ if __name__ == "__main__":
     plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
     plt.show()
     
-    plt.contourf(X,Y, np.abs(reg_sing[-1] - cap_sing[-1]), label="T single", norm="log")
+    plt.contourf(X, Y,  np.abs(reg_sing[-1].T), alpha=1., antialiased=True) # , label="T single") # , , norm="log") 
+    plt.contourf(X0,Y0, np.abs(cap_sing[-1].T), alpha=.5, antialiased=True)
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.colorbar(label="Difference")
@@ -1219,4 +1247,7 @@ if __name__ == "__main__":
     # exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),8,V0,w,s,d,0)
     # exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),8,V0,w,s,d,0)
     # exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),8,V0,w,s,d,0)
+    
+    end_time = time()
+    print("Total runtime: ", end_time)
     
