@@ -507,14 +507,14 @@ def solve_no_plotting(psis, Hamiltonians):
     return psis_new
 
 
-def exe_2_4(x0          = -60,
+def exe_2_4(x0          = -30,
             sigmap      = 0.1,
-            p0_min      = .3,
+            p0_min      = .2,
             p0_max      = 6,
             n_p0        = 200,
             tau         = 0,
             L           = 1000,
-            n           = 4096,
+            n           = 2048,
             V0          = 2,
             w           = .5,
             s           = 25,
@@ -522,6 +522,7 @@ def exe_2_4(x0          = -60,
             pot_2       = 1,
             animate     = False,
             do_save     = False,
+            save_name    = None,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
@@ -600,8 +601,12 @@ def exe_2_4(x0          = -60,
     title = "Transmission/reflection probability for " + title + " without CAP.\n" + r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
     if do_save:
-        savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_noCAP.pdf"
-        plt.savefig(savename)
+        if save_name is None:
+            savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_noCAP"
+        else:
+            savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_noCAP"
+        plt.savefig(savename+".pdf")
+        np.save(savename, [p0s, trans_proability,refle_proability,trap_proability])
     plt.show()
     
     max_diff = np.max(np.abs(np.array(trans_proability) + np.array(refle_proability) - 1))
@@ -618,10 +623,14 @@ def exe_2_4(x0          = -60,
     title = "double potential" if pot_2 == 1 else "single potential"
     title = "Velocity density distribution for " + title + " without CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
-    plt.ylim(-6.1,6.1)
+    # plt.ylim(-6.1,6.1)
     if do_save:
-        savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_noCAP.pdf"
-        plt.savefig(savename)
+        if save_name is None:
+            savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_noCAP"
+        else:
+            savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_noCAP"
+        plt.savefig(savename+".pdf")
+        np.save(savename, [p0s, k_fft,phi2s])
     plt.show()
     
 
@@ -639,6 +648,8 @@ def exe_2_4(x0          = -60,
         exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),1,V0,w,s,d)
         exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),1,V0,w,s,d)
         exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),1,V0,w,s,d)
+        
+    return p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
 
 
 def exe_2_4_anim(x0          = -50,
@@ -751,7 +762,7 @@ def exe_CAP(x0          = -30,
             tau         = 0,
             L           = 200,
             n           = 512,
-            t_steps     = 200,
+            t_steps     = 500,
             V0          = 3,
             w           = .5,
             s           = 25,
@@ -759,8 +770,9 @@ def exe_CAP(x0          = -30,
             pot_2       = 1,
             animate     = False,
             gamma_0     = .005,
-            R_part      = .8,
+            R_part      = .75,
             do_save     = False,
+            save_name    = None,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
@@ -770,7 +782,7 @@ def exe_CAP(x0          = -30,
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     p0s = np.linspace(p0_min, p0_max, n_p0)
-    gamma_0s = p0s * 3 / 2000
+    gamma_0s = p0s * 3 / 1000
 
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
@@ -923,8 +935,8 @@ def exe_CAP(x0          = -30,
 
     plt.plot(p0s, Transmission, label="Transmission")
     plt.plot(p0s, Reflection, label="Reflection")
-    plt.plot(p0s, sums,  label="Sum")
     plt.plot(p0s, Reaminader,  label="Reaminader")
+    plt.plot(p0s, sums,  label="Sum")
     plt.xlabel(r"$p_0$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
     plt.ylabel("Probaility") # TODO: find better name
@@ -934,8 +946,12 @@ def exe_CAP(x0          = -30,
     title = "Transmission/reflection probability for " + title + " with CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
     if do_save:
-        savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_CAP.pdf"
-        plt.savefig(savename)
+        if save_name is None:
+            savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_CAP"
+        else:
+            savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_CAP"
+        plt.savefig(savename+".pdf")
+        np.save(savename, [p0s, Transmission,Reflection,Reaminader,sums])
     plt.show()
     
     
@@ -977,8 +993,12 @@ def exe_CAP(x0          = -30,
     plt.title(title)
     # plt.ylim(-6.1,6.1)
     if do_save:
-        savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_CAP.pdf"
-        plt.savefig(savename)
+        if save_name is None:
+            savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_CAP"
+        else:
+            savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_CAP"
+        plt.savefig(savename+".pdf")
+        np.save(savename, [p0s, k_fft,phi2s])
     plt.show()
     
     
@@ -1023,6 +1043,8 @@ def exe_CAP(x0          = -30,
         # exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
         # exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
 
+    return p0s,Transmission,Reflection,Reaminader,sums,k_fft,phi2s
+
 
 def exe_CAP_anim(x0          = -50,
                  sigmap      = 0.1,
@@ -1047,7 +1069,7 @@ def exe_CAP_anim(x0          = -50,
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
-    gamma_0 = p0 * 2 / 2000
+    gamma_0 = p0 * 2 / 1000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -1111,48 +1133,85 @@ if __name__ == "__main__":
     # exe_2_4(pot_2=1, animate=True)
     # exe_2_4(pot_2=0, animate=True)
     
-    exe_2_4_anim(pot_2=0)
-    exe_CAP_anim(pot_2=0)
-    exe_2_4_anim(pot_2=1)
-    exe_CAP_anim(pot_2=1)
-
-    # print("\nCAP single potential: ")
-    # exe_CAP(animate=False, pot_2=0, n_p0=200, L=300, t_steps=250, do_save=True) 
-    # print("\nCAP double potential: ")
-    # exe_CAP(animate=False, pot_2=1, n_p0=200, L=300, t_steps=250, do_save=True) 
+    # exe_2_4_anim(pot_2=0)
+    # exe_CAP_anim(pot_2=0)
+    # exe_2_4_anim(pot_2=1)
+    # exe_CAP_anim(pot_2=1)
     
-    # print("\nNo CAP single potential: ")
-    # exe_2_4(x0          = -30,
-    #         sigmap      = 0.1,
-    #         p0_min      = .2,
-    #         p0_max      = 6,
-    #         n_p0        = 200,
-    #         tau         = 0,
-    #         L           = 700,
-    #         n           = 2048,
-    #         V0          = 3,
-    #         w           = .5,
-    #         s           = 25,
-    #         d           = 2,
-    #         pot_2       = 0,
-    #         animate     = False, 
-    #         do_save     = True,)
-    # print("\nNo CAP double potential: ")
-    # exe_2_4(x0          = -30,
-    #         sigmap      = 0.1,
-    #         p0_min      = .2,
-    #         p0_max      = 6,
-    #         n_p0        = 200,
-    #         tau         = 0,
-    #         L           = 700,
-    #         n           = 2048,
-    #         V0          = 3,
-    #         w           = .5,
-    #         s           = 25,
-    #         d           = 2,
-    #         pot_2       = 1,
-    #         animate     = False,
-    #         do_save     = True,)
+    savename = "att1"
+
+    print("\nCAP single potential: ")
+    cap_sing = exe_CAP(animate=False, x0=-30, p0_min=.3, pot_2=0, n_p0=200, L=400, t_steps=500, do_save=True, save_name=savename) 
+    print("\nCAP double potential: ")
+    cap_doub = exe_CAP(animate=False, x0=-30, p0_min=.3, pot_2=1, n_p0=200, L=400, t_steps=500, do_save=True, save_name=savename) 
+    # p0s,Transmission,Reflection,Reaminader,sums,k_fft,phi2s
+    
+    print("\nNo CAP single potential: ")
+    reg_sing = exe_2_4(x0          = -30,
+            sigmap      = 0.1,
+            p0_min      = .3,
+            p0_max      = 6,
+            n_p0        = 200,
+            tau         = 0,
+            L           = 800,
+            n           = 2048,
+            V0          = 3,
+            w           = .5,
+            s           = 25,
+            d           = 2,
+            pot_2       = 0,
+            animate     = False, 
+            do_save     = True,
+            save_name   = savename,)
+    print("\nNo CAP double potential: ")
+    reg_doub = exe_2_4(x0          = -30,
+            sigmap      = 0.1,
+            p0_min      = .3,
+            p0_max      = 6,
+            n_p0        = 200,
+            tau         = 0,
+            L           = 800,
+            n           = 2048,
+            V0          = 3,
+            w           = .5,
+            s           = 25,
+            d           = 2,
+            pot_2       = 1,
+            animate     = False,
+            do_save     = True,
+            save_name   = savename,)
+    # p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
+    
+    plt.plot(reg_doub[0], np.abs(reg_doub[1] - cap_doub[1]), label="T double")
+    plt.plot(reg_doub[0], np.abs(reg_doub[2] - cap_doub[2]), label="R double")
+    plt.plot(reg_doub[0], np.abs(reg_sing[1] - cap_sing[1]), label="T single")
+    plt.plot(reg_doub[0], np.abs(reg_sing[2] - cap_sing[2]), label="R single")
+    plt.legend()
+    plt.xlabel(r"$p_0$")
+    plt.ylabel("Difference") # TODO: find better name
+    plt.grid()
+    plt.title("Absoulte difference between CAP and regular simulation.")
+    plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
+    plt.show()
+    
+    
+    X,Y = np.meshgrid(reg_doub[0], reg_doub[-2])
+    plt.contourf(X,Y, np.abs(reg_doub[-1] - cap_doub[-1]), label="T double", norm="log")
+    plt.xlabel(r"$p_0$")
+    plt.ylabel(r"$k$")
+    plt.colorbar(label="Difference")
+    plt.title(r"Absoulte difference of $dP/dp$ between CAP and regular simulation for double potential.")
+    plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
+    plt.show()
+    
+    plt.contourf(X,Y, np.abs(reg_sing[-1] - cap_sing[-1]), label="T single", norm="log")
+    plt.xlabel(r"$p_0$")
+    plt.ylabel(r"$k$")
+    plt.colorbar(label="Difference")
+    plt.title(r"Absoulte difference of $dP/dp$ between CAP and regular simulation for single potential.")
+    plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
+    plt.show()
+    
     
     # n2 = int(100/2)
     # x0=-30; sigmap=0.1; tau=0; L=500; n=1024; V0=3; w=.5; s=25; d=2
