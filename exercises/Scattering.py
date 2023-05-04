@@ -427,13 +427,11 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
     if len(analytical_plot) > 0: 
         funcs_plot_list.append(update_anal_plot)
     
-    if do_dP_dp_plot: # and (np.abs(dP_dp_change[loc]) > 1e-1):
-        # print(dP_dp_change, dtdx2_pi)
+    if do_dP_dp_plot: 
         if CAP is not None:
             funcs_plot_list.append(update_dPdp_plot_CAP)
         else:
             funcs_plot_list.append(update_dPdp_plot)
-    
     
     # goes through all the time steps
     for t in tqdm(range(len(times))):
@@ -450,50 +448,6 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
     for func in funcs_list:
         func()  
         
-        
-            # update the CAP values
-            # if CAP is not None:
-            #     # calculates the Transmission and reflection this timestep
-            #     Transmission[p] += np.trapz(CAP_vector[CAP_locs[1]] * np.abs(psis[p][CAP_locs[1]])**2, x[CAP_locs[1]]) # overlap_R
-            #     Reflection  [p] += np.trapz(CAP_vector[CAP_locs[2]] * np.abs(psis[p][CAP_locs[2]])**2, x[CAP_locs[2]]) # overlap_L
-                
-            #     # calculates the momentum distribution this timestep
-            #     dP_dp_change = np.real( np.conj( sc.fft.fft(psis[p])) * sc.fft.fft(CAP_vector   * psis[p]) ) 
-            #     dP_dp [p] += dP_dp_change # np.real( np.conj( sc.fft.fft(psis[p])) * sc.fft.fft(CAP_vector   * psis[p]) ) 
-                
-        # # we don't update the plot every single time step
-        # if do_live_plot and t % plot_every == 0:
-            
-        #     for func in funcs_plot_list:
-        #         func()
-            
-        #     for p in range(len(psis)):
-        #         lines_psi[p].set_ydata(np.abs(psis[p])**2) # update numeric wave functions
-                
-        #     # if len(analytical_plot) > 0: 
-        #     #     line_anal.set_ydata( analytical_plot[t] ) # update analytical wave function
-            
-        #     # update momentum probability distribution
-        #     # if do_dP_dp_plot: # and (np.abs(dP_dp_change[loc]) > 1e-1):
-        #     #     # print(dP_dp_change, dtdx2_pi)
-        #     #     if CAP is not None:
-        #     #         # phi2 = [np.abs(np.fft.fftshift(i)) for i in (dP_dp * dtdx2_pi)]
-        #     #         for p in range(len(psis)):
-        #     #             # lines_dP_dp[p].set_ydata(phi2[p])
-        #     #             lines_dP_dp[p].set_ydata(np.abs(np.fft.fftshift(dP_dp[p] * dtdx2_pi)))
-        #     #     else:
-        #     #         for p in range(len(psis)):
-        #     #             lines_dP_dp[p].set_ydata(np.fft.fftshift(np.abs(sc.fft.fft(psis[p]))**2) * dx2_2pi)
-            
-        #     plt.title(plot_title + " t = {:.2f} of {:.2f}.".format(times[t], times[-1]))
-
-        #     # drawing updated values
-        #     figure.canvas.draw()
-
-        #     # This will run the GUI event
-        #     # loop until all UI events
-        #     # currently waiting have been processed
-        #     figure.canvas.flush_events()
     
     if do_live_plot:
         # makes the plot window stay up until it is closed
@@ -566,11 +520,8 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
         
         dPdp_initial = np.fft.fftshift(np.abs(sc.fft.fft(psis_initial_flat))**2) * dx2_2pi # np.load(load_dPdp.format(0)) # np.load(load_folder+"/dPdp_CAP_"+"0"*(int(np.log10(len(times)))+1)+".npy")
     
-    # plot_labels = [r"$\psi$" for i in range(len(psis_initial))]
     plot_labels = ["Wave Function" for i in range(len(psis_initial))]
     
-    
-    # plt.ion()
     
     sns.set_theme(style="dark") # nice plots
 
@@ -673,8 +624,8 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
     
     # saving to m4 using ffmpeg writer
     plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/bendikst/OneDrive - OsloMet/Dokumenter/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe' # replace wiht your local path
-    writervideo = animation.FFMpegWriter(fps=30,bitrate=50000)
-    ani.save(load_folder+f"/animation_{'CAP' if use_CAP else 'reg'}.mp4", dpi=500, writer=writervideo, )
+    writervideo = animation.FFMpegWriter(fps=30) # ,bitrate=30000)
+    ani.save(load_folder+f"/animation_{'CAP' if use_CAP else 'reg'}.mp4", writer=writervideo, ) # dpi=500, 
     plt.show()
     
     
@@ -716,7 +667,8 @@ def run_anim_CAP(x0          = -30,
                                                                                  do_dP_dp_plot=True, do_live_plot=False, 
                                                                                  do_save_psi=True, do_save_dPdp=True,) 
     
-    load_and_plot(use_CAP=True)
+    plot_title = "Scattering on " + "doubble" if pot_2==1 else "single" + " barrier, with CAP."
+    load_and_plot(use_CAP=True, do_dP_dp_plot=True, plot_title=plot_title)
     
 
 
@@ -753,7 +705,8 @@ def run_anim_reg(x0          = -30,
                                                                                  do_dP_dp_plot=True, do_live_plot=False, 
                                                                                  do_save_psi=True, do_save_dPdp=True,) 
     
-    load_and_plot(use_CAP=False, do_dP_dp_plot=True)
+    plot_title = "Scattering on " + "doubble" if pot_2==1 else "single" + " barrier, without CAP."
+    load_and_plot(use_CAP=False, do_dP_dp_plot=True, plot_title=plot_title)
     
     plt.show()
 
