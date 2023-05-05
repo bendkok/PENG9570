@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 from time import time
-# import time
+import matplotlib.ticker as ticker
 
 sns.set_theme(style="dark") # nice plots
 
@@ -119,7 +119,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
     if V is not None:
         line_V, = ax_p.plot(x, V.diagonal(), '--', color='tab:orange', label="Potential Barrier", zorder=2)
         # ax.set_ylim(top = np.max(np.abs(psis)**2)*1.5, bottom=-0.01)
-        # align_yaxis(ax, ax_p, 1.3)
+        align_yaxis(ax, ax_p, 1.3)
         # ax_p.set_ylabel("Potential")
 
 
@@ -169,7 +169,16 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         dPl_dp = np.zeros((len(psis), len(psis[0])))
         dPr_dp = np.zeros((len(psis), len(psis[0])))
         dP_dp  = np.zeros((len(psis), len(psis[0])))
-        
+    
+    elif V is not None:
+        lines, labels = ax.get_legend_handles_labels()
+        lines2, labels2 = ax_p.get_legend_handles_labels()
+        ax.legend(lines + lines2, labels + labels2, loc=1)
+        # ax.set_ylim(top = np.max(psi_analytical(0, x))*1.1)
+
+        ax.set_zorder(ax_p.get_zorder()+1) # put ax in front of ax_p
+        ax.patch.set_visible(False)  # hide the 'canvas'
+        ax_p.patch.set_visible(True) # show the 'canvas'
         
     else:
         ax.legend()
@@ -405,7 +414,8 @@ def exe_1_8(x0          = -20,
 
 
 def rectangular_potential(x, V0, s, w):
-    adjust = x[np.where(np.min(np.abs(x)) == np.abs(x))[0]] # we adjust the grid slightly so that the peak is exactly V0
+    adjust = x[np.where(np.min(np.abs(x)) == np.abs(x))[0][0]] # we adjust the grid slightly so that the peak is exactly V0
+    # print(adjust, np.max( V0 / (1 + np.exp(s * (np.abs(x-adjust) - w/2)))))
     return sp.diags( V0 / (1 + np.exp(s * (np.abs(x-adjust) - w/2))))
 
 
@@ -593,6 +603,7 @@ def exe_2_4(x0          = -30,
     plt.plot(p0s, trans_proability, label="Transmission")
     plt.plot(p0s, refle_proability, label="Reflection")
     plt.plot(p0s, trap_proability,  label="Trapped")
+    plt.plot(p0s, trans_proability+refle_proability, label="Sum")
     plt.xlabel(r"$p_0$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
     plt.ylabel("Probaility")
@@ -775,7 +786,7 @@ def exe_CAP(x0          = -30,
             pot_2       = 1,
             animate     = False,
             gamma_0     = .005,
-            R_part      = .75,
+            R_part      = .65, # .75,
             do_save     = False,
             save_name    = None,
             ):
@@ -787,7 +798,7 @@ def exe_CAP(x0          = -30,
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     p0s = np.linspace(p0_min, p0_max, n_p0)
-    gamma_0s = p0s * 6 / 1000
+    gamma_0s = p0s**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
 
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
@@ -948,7 +959,7 @@ def exe_CAP(x0          = -30,
     plt.grid()
     plt.legend()
     title = "double potential" if pot_2 == 1 else "single potential"
-    title = "Transmission/reflection probability for " + title + " with CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    title = "Transmission/reflection probability for " + title + " with CAP.    \n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
     if do_save:
         if save_name is None:
@@ -994,7 +1005,7 @@ def exe_CAP(x0          = -30,
     plt.ylabel(r"$k$")
     plt.colorbar(label=r"$dP/dp$")
     title = "double potential" if pot_2 == 1 else "single potential"
-    title = "Velocity density distribution for " + title + " with CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
+    title = "Velocity density distribution for " + title + " with CAP.    \n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
     plt.title(title)
     # plt.ylim(-6.1,6.1)
     if do_save:
@@ -1070,11 +1081,11 @@ def exe_CAP_anim(x0          = -50,
                  ):
 
 
-    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*2.5, T0))
+    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*2.5, 0))
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
-    gamma_0 = p0 * 2 / 1000
+    gamma_0 = p0 * 1 / 10000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -1084,6 +1095,7 @@ def exe_CAP_anim(x0          = -50,
     # regular_potential = rectangular_potential(x-d, V0, s, w) + rectangular_potential(x+d, V0, s, w)
     CAP_vector, exp_CAP_vector_dt, CAP_locs = square_gamma_CAP(x, dt=dt, gamma_0=gamma_0, R = R_part*L/2) # [:,0] # * 1j
     potential =  rectangular_potential(x-d, V0, s, w) + pot_2*rectangular_potential(x+d, V0, s, w)
+    print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     psis         = [psi_single_initial(x,x0,sigmap,p0,tau)]
     Hamiltonians = [make_fft_Hamiltonian(n, L, dt, V = potential - sp.diags(1j*CAP_vector))[0] ] # * CAP[1]]
@@ -1146,17 +1158,20 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att1"
+    savename = "att5"
     
-    p0_min  = .3
+    p0_min  = .2
     p0_max  = 6
     n_p0    = 200
     anim    = False
-
+    
+    # exe_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
+    # exit()
+    
     print("\nCAP single potential: ")
-    cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=1024, t_steps=300, do_save=True, save_name=savename) 
+    cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=300, n=1024, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
-    cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=1024, t_steps=300, do_save=True, save_name=savename) 
+    cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=300, n=1024, t_steps=200, do_save=True, save_name=savename) 
     # p0s,Transmission,Reflection,Reaminader,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
@@ -1195,22 +1210,22 @@ if __name__ == "__main__":
                        save_name   = savename,)
     # p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
     
-    plt.plot(reg_doub[0], np.abs((reg_doub[1] - cap_doub[1])/reg_doub[1]), label="T double")
-    plt.plot(reg_doub[0], np.abs((reg_doub[2] - cap_doub[2])/reg_doub[2]), label="R double")
-    plt.plot(reg_doub[0], np.abs((reg_sing[1] - cap_sing[1])/reg_sing[1]), label="T single")
-    plt.plot(reg_doub[0], np.abs((reg_sing[2] - cap_sing[2])/reg_sing[2]), label="R single")
-    plt.legend()
-    plt.xlabel(r"$p_0$")
-    plt.ylabel("Difference") # TODO: find better name
-    plt.grid()
-    plt.title("Relative difference between CAP and regular simulation.")
-    plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
-    plt.show()
+    # plt.plot(reg_doub[0], np.abs((reg_doub[1] - cap_doub[1])/reg_doub[1]), label="T double")
+    # plt.plot(reg_doub[0], np.abs((reg_doub[2] - cap_doub[2])/reg_doub[2]), label="R double")
+    # plt.plot(reg_doub[0], np.abs((reg_sing[1] - cap_sing[1])/reg_sing[1]), label="T single")
+    # plt.plot(reg_doub[0], np.abs((reg_sing[2] - cap_sing[2])/reg_sing[2]), label="R single")
+    # plt.legend()
+    # plt.xlabel(r"$p_0$")
+    # plt.ylabel("Difference") # TODO: find better name
+    # plt.grid()
+    # plt.title("Relative difference between CAP and regular simulation.")
+    # plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
+    # plt.show()
     
-    plt.plot(reg_doub[0], np.abs(reg_doub[1] - cap_doub[1]), label="T double")
-    plt.plot(reg_doub[0], np.abs(reg_doub[2] - cap_doub[2]), label="R double")
     plt.plot(reg_doub[0], np.abs(reg_sing[1] - cap_sing[1]), label="T single")
-    plt.plot(reg_doub[0], np.abs(reg_sing[2] - cap_sing[2]), label="R single")
+    plt.plot(reg_doub[0], np.abs(reg_sing[2] - cap_sing[2]), '--', label="R single")
+    plt.plot(reg_doub[0], np.abs(reg_doub[1] - cap_doub[1]), label="T double")
+    plt.plot(reg_doub[0], np.abs(reg_doub[2] - cap_doub[2]), '--', label="R double")
     plt.legend()
     plt.xlabel(r"$p_0$")
     plt.ylabel("Difference") # TODO: find better name
@@ -1222,21 +1237,23 @@ if __name__ == "__main__":
     
     X,Y   = np.meshgrid(reg_doub[0], reg_doub[-2])
     X0,Y0 = np.meshgrid(cap_doub[0], cap_doub[-2])
-    plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=1., antialiased=True) # , label="T double") # , norm="log")
-    plt.contourf(X0,Y0, np.abs(cap_doub[-1].T), alpha=.5, antialiased=True)
+    plt.contourf(X0,Y0, np.abs(cap_doub[-1].T), alpha=1., antialiased=True)
+    plt.colorbar(label="CAP")
+    plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
+    plt.colorbar(label="Regular")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
-    plt.colorbar(label="Difference")
-    plt.title(r"Absoulte difference of $dP/dp$ between CAP and regular simulation for double potential.")
+    plt.title(r"$dP/dp$ for both CAP and regular simulation with double potential.")
     plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
     plt.show()
     
-    plt.contourf(X, Y,  np.abs(reg_sing[-1].T), alpha=1., antialiased=True) # , label="T single") # , , norm="log") 
-    plt.contourf(X0,Y0, np.abs(cap_sing[-1].T), alpha=.5, antialiased=True)
+    plt.contourf(X0,Y0, np.abs(cap_sing[-1].T), alpha=1., antialiased=True)
+    plt.colorbar(label="CAP")
+    plt.contourf(X, Y,  np.abs(reg_sing[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T single") # , , norm="log") 
+    plt.colorbar(label="Regular")
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
-    plt.colorbar(label="Difference")
-    plt.title(r"Absoulte difference of $dP/dp$ between CAP and regular simulation for single potential.")
+    plt.title(r"$dP/dp$ for both CAP and regular simulation with single potential.")
     plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
     plt.show()
     
@@ -1249,5 +1266,5 @@ if __name__ == "__main__":
     # exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),8,V0,w,s,d,0)
     
     end_time = time()
-    print("Total runtime: ", end_time)
+    print("Total runtime: {:.4f} s.".format(end_time-start_time))
     
