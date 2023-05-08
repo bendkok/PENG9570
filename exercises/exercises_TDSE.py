@@ -56,7 +56,7 @@ def Magnus_propagator(psi, H_adjusted):
 
 def make_3_point_Hamiltonian(n, h, dt, V=0):
     """
-    The Hamiltonian when using 3-point finite difference to discretice the spatial derivative.
+    The Hamiltonian when using 3-point finite difference to discretise the spatial derivative.
     """
     ones = np.ones(n)
     D2_3 = sp.diags( [ ones[1:], -2*ones, ones[1:]], [-1, 0, 1], format='coo') / (h*h) # second order derivative
@@ -68,7 +68,7 @@ def make_3_point_Hamiltonian(n, h, dt, V=0):
 
 def make_5_point_Hamiltonian(n, h, dt, V=0):
     """
-    The Hamiltonian when using 5-point finite difference to discretice the spatial derivative.
+    The Hamiltonian when using 5-point finite difference to discretise the spatial derivative.
     """
     ones = np.ones(n)
     D2_5 = sp.diags( [-ones[2:], 16*ones[1:], -30*ones, 16*ones[1:], -ones[2:]], [-2,-1,0,1,2], format='coo') / (12*h*h) # second order derivative
@@ -80,7 +80,7 @@ def make_5_point_Hamiltonian(n, h, dt, V=0):
 
 def make_fft_Hamiltonian(n, L, dt, V=0):
     """
-    The Hamiltonian when using Fourier transformation to discretice the spatial derivative.
+    The Hamiltonian when using Fourier transformation to discretise the spatial derivative.
     When we take the FFT, we can take the spatial derivative by simply multiplying by ik,
     and then transforming back.
     """
@@ -162,7 +162,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         
         Transmission = np.zeros(len(psis))
         Reflection   = np.zeros(len(psis))
-        Reaminader   = np.zeros(len(psis))
+        Remainder    = np.zeros(len(psis))
         
         # dPl_dp = np.zeros((len(psis), len(CAP_locs[2])))
         # dPr_dp = np.zeros((len(psis), len(CAP_locs[1])))
@@ -194,7 +194,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
                 overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(psis[i][CAP_locs[1]])**2, x[CAP_locs[1]])
                 overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(psis[i][CAP_locs[2]])**2, x[CAP_locs[2]])
                 
-                # calculates the transmission and refflection this timestep
+                # calculates the transmission and reflections this timestep
                 Transmission[i] += overlap_R
                 Reflection  [i] += overlap_L
                 
@@ -213,8 +213,6 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
             #     # psis[i] = time_propagator(psis[i], Hamiltonians[i])
             #     psis[i] = time_propagator(psis0[i], Hamiltonians[i], (t)*dt)
             
-            # if np.any(psis[i]-psis0[i] != 0.+0.j):
-            #     print("afasfsad")
 
             [lines[i].set_ydata(np.abs(psis[i])**2) for i in range(len(psis))]
             if len(analytical) > 0:
@@ -236,13 +234,13 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         
         Transmission = [Transmission[i] * 2 * dt for i in range(len(psis))]
         Reflection   = [Reflection  [i] * 2 * dt for i in range(len(psis))]
-        Reaminader   = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
+        Remainder   = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
     
         print()
         print(f"Transmission: {Transmission}.")
         print(f"Reflection:   {Reflection}.")
         print(f"Sum           {[Transmission[i] + Reflection[i] for i in range(len(psis))]}.")
-        print(f"Reaminader:   {Reaminader}.", "\n")
+        print(f"Remainder :   {Remainder}.", "\n")
         
         n = len(x)
         L = 2*np.max(x)
@@ -308,7 +306,7 @@ def align_yaxis(ax1, ax2, scale_1=1, scale_2=1):
     # find combined range
     y_new_lims_normalized = np.array([np.min(y_lims_normalized), np.max(y_lims_normalized)])
 
-    # denormalize combined range to get new axes
+    # denormalise combined range to get new axes
     new_lim1, new_lim2 = y_new_lims_normalized * y_mags
     ax1.set_ylim(new_lim1)
     ax2.set_ylim(new_lim2)
@@ -548,9 +546,9 @@ def exe_2_4(x0          = -30,
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
 
-    trans_proability = np.zeros(len(p0s))
-    trap_proability  = np.zeros(len(p0s))
-    refle_proability = np.zeros(len(p0s))
+    trans_probability = np.zeros(len(p0s))
+    trap_probability  = np.zeros(len(p0s))
+    refle_probability = np.zeros(len(p0s))
 
     trans_loc  = np.where(x>d)[0]
     trap_loc   = np.where(np.abs(x)<d)[0]
@@ -575,13 +573,13 @@ def exe_2_4(x0          = -30,
         res_psi = solve_no_plotting(psi, Hamiltonian)[0]
 
         trans_prob = np.abs(res_psi[trans_loc])**2
-        trans_proability[p] = np.trapz(trans_prob, x[trans_loc])
+        trans_probability[p] = np.trapz(trans_prob, x[trans_loc])
 
         trap_prob  = np.abs(res_psi[trap_loc])**2
-        trap_proability [p] =   np.trapz(trap_prob, x[trap_loc])
+        trap_probability [p] =   np.trapz(trap_prob, x[trap_loc])
 
         refle_prob = np.abs(res_psi[refle_loc])**2
-        refle_proability[p] = np.trapz(refle_prob, x[refle_loc]) 
+        refle_probability[p] = np.trapz(refle_prob, x[refle_loc]) 
         
         phi2s[p] = np.fft.fftshift(np.abs(sc.fft.fft(res_psi))**2) 
         # norms[p] = si.simpson(phi2s[p], k_fft) 
@@ -597,16 +595,16 @@ def exe_2_4(x0          = -30,
 
     # figure, ax = plt.subplots(figsize=(10, 8))
     # ax.set_ylim(top = np.max(np.abs(psis)**2)*2.2, bottom=-0.01)
-    # line_trans, = ax.plot(p0s, trans_proability, label="Transmission")
-    # line_refle, = ax.plot(p0s, refle_proability, label="Reflection")
-    # line_trap,  = ax.plot(p0s, trap_proability,  label="Trapped")
-    plt.plot(p0s, trans_proability, label="Transmission")
-    plt.plot(p0s, refle_proability, label="Reflection")
-    plt.plot(p0s, trap_proability,  label="Trapped")
-    plt.plot(p0s, trans_proability+refle_proability, label="Sum")
+    # line_trans, = ax.plot(p0s, trans_probability, label="Transmission")
+    # line_refle, = ax.plot(p0s, refle_probability, label="Reflection")
+    # line_trap,  = ax.plot(p0s, trap_probability,  label="Trapped")
+    plt.plot(p0s, trans_probability, label="Transmission")
+    plt.plot(p0s, refle_probability, label="Reflection")
+    plt.plot(p0s, trap_probability,  label="Trapped")
+    plt.plot(p0s, trans_probability+refle_probability, label="Sum")
     plt.xlabel(r"$p_0$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel("Probaility")
+    plt.ylabel("Probability")
     plt.grid()
     plt.legend()
     title = "double potential" if pot_2 == 1 else "single potential"
@@ -619,11 +617,11 @@ def exe_2_4(x0          = -30,
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_noCAP"
         plt.savefig(savename+".pdf")
-        np.save(savename, [p0s, trans_proability,refle_proability,trap_proability])
+        np.save(savename, [p0s, trans_probability,refle_probability,trap_probability])
     plt.show()
     
-    max_diff = np.max(np.abs(np.array(trans_proability) + np.array(refle_proability) - 1))
-    print(f"Max differnce of sums from 1: {max_diff}")
+    max_diff = np.max(np.abs(np.array(trans_probability) + np.array(refle_probability) - 1))
+    print(f"Max difference of sums from 1: {max_diff}")
     
     
     # check if it is properly normalised
@@ -657,15 +655,16 @@ def exe_2_4(x0          = -30,
     # plt.show()
 
     if animate:
+        speed = 10
         n2 = int(n_p0/2)
         print(p0s[ 0])
-        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),5,V0,w,s,d)
+        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),speed,V0,w,s,d,pot_2)
         print(p0s[n2])
-        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),5,V0,w,s,d)
+        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),speed,V0,w,s,d,pot_2)
         print(p0s[-1])
-        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),5,V0,w,s,d)
+        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),speed,V0,w,s,d,pot_2)
         
-    return p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
+    return p0s,trans_probability,refle_probability,trap_probability,k_fft,phi2s
 
 
 def exe_2_4_anim(x0          = -50,
@@ -803,18 +802,18 @@ def exe_CAP(x0          = -30,
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
     # exp_iH_fft = make_fft_Hamiltonian(n, L,1, V=potential)[2]
-    trans_proability = []
-    trap_proability  = []
-    refle_proability = []
+    trans_probability = []
+    trap_probability  = []
+    refle_probability = []
 
     Transmission = np.zeros(len(p0s))
     Reflection   = np.zeros(len(p0s))
-    Reaminader   = np.zeros(len(p0s))
+    Remainder    = np.zeros(len(p0s))
     dPl_dp       = np.zeros((len(p0s), len(x)))
     dPr_dp       = np.zeros((len(p0s), len(x)))
     dP_dp        = np.zeros((len(p0s), len(x)))
 
-    fininsh_l = []
+    finish_l = []
 
     Ts  = (L/4 + np.abs(x0))/np.abs(p0s)
     dts = Ts/t_steps
@@ -861,7 +860,7 @@ def exe_CAP(x0          = -30,
             # if res_psi[0].shape < np.max(CAP_locs[1]):
             #     print("")
             
-            # calculates the transmission and refflection this timestep
+            # calculates the transmission and reflection this timestep
             overlap_R = np.trapz(CAP_vector[CAP_locs[1]] * np.abs(res_psi[0][CAP_locs[1]])**2, x[CAP_locs[1]])
             overlap_L = np.trapz(CAP_vector[CAP_locs[2]] * np.abs(res_psi[0][CAP_locs[2]])**2, x[CAP_locs[2]])
             
@@ -880,9 +879,9 @@ def exe_CAP(x0          = -30,
             if l % stop_test == 0:
                 # print(l)
                 if np.sum(np.abs(res_psi[0])**2)*h < 1e-6:
-                    fininsh_l.append(l)
+                    finish_l.append(l)
                     not_converged = False
-                    Reaminader[p] = np.sum(np.abs(res_psi[0])**2)
+                    Remainder[p] = np.sum(np.abs(res_psi[0])**2)
 
         
         Transmission[p] *= dt2
@@ -893,15 +892,15 @@ def exe_CAP(x0          = -30,
 
         trans_loc  = np.where(x>d)[0]
         trans_prob = np.abs(res_psi[trans_loc])**2
-        trans_proability.append( np.trapz(trans_prob, x[trans_loc]) )
+        trans_probability.append( np.trapz(trans_prob, x[trans_loc]) )
 
         trap_loc   = np.where(np.abs(x)<d)[0]
         trap_prob  = np.abs(res_psi[trap_loc])**2
-        trap_proability.append(  np.trapz(trap_prob, x[trap_loc]))
+        trap_probability.append(  np.trapz(trap_prob, x[trap_loc]))
 
         refle_loc  = np.where(x<=-d)[0]
         refle_prob = np.abs(res_psi[refle_loc])**2
-        refle_proability.append(  np.trapz(refle_prob, x[refle_loc]) )
+        refle_probability.append(  np.trapz(refle_prob, x[refle_loc]) )
         
         # dPr_dp[p] = dPr_dp[p] * 2 * dt * dx**2 / (2*np.pi)
         # dPl_dp[p] = dPl_dp[p] * 2 * dt * dx**2 / (2*np.pi)
@@ -921,16 +920,16 @@ def exe_CAP(x0          = -30,
 
     # figure, ax = plt.subplots(figsize=(10, 8))
     # ax.set_ylim(top = np.max(np.abs(psis)**2)*2.2, bottom=-0.01)
-    # line_trans, = ax.plot(p0s, trans_proability, label="Transmission")
-    # line_refle, = ax.plot(p0s, refle_proability, label="Reflection")
-    # line_trap,  = ax.plot(p0s, trap_proability,  label="Trapped")
+    # line_trans, = ax.plot(p0s, trans_probability, label="Transmission")
+    # line_refle, = ax.plot(p0s, refle_probability, label="Reflection")
+    # line_trap,  = ax.plot(p0s, trap_probability,  label="Trapped")
 
-    # plt.plot(p0s, trans_proability, label="Transmission")
-    # plt.plot(p0s, refle_proability, label="Reflection")
-    # plt.plot(p0s, trap_proability,  label="Trapped")
+    # plt.plot(p0s, trans_probability, label="Transmission")
+    # plt.plot(p0s, refle_probability, label="Reflection")
+    # plt.plot(p0s, trap_probability,  label="Trapped")
     # plt.xlabel(r"$p_0$")
     # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    # plt.ylabel("Probaility")
+    # plt.ylabel("Probability")
     # plt.grid()
     # plt.legend()
     # title = "Double potential." if pot_2 == 1 else "Single potential."
@@ -951,11 +950,11 @@ def exe_CAP(x0          = -30,
 
     plt.plot(p0s, Transmission, label="Transmission")
     plt.plot(p0s, Reflection, label="Reflection")
-    plt.plot(p0s, Reaminader,  label="Reaminader")
+    plt.plot(p0s, Remainder,  label="Remainder")
     plt.plot(p0s, sums,  label="Sum")
     plt.xlabel(r"$p_0$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel("Probaility") # TODO: find better name
+    plt.ylabel("Probability") # TODO: find better name
     plt.grid()
     plt.legend()
     title = "double potential" if pot_2 == 1 else "single potential"
@@ -967,7 +966,7 @@ def exe_CAP(x0          = -30,
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_CAP"
         plt.savefig(savename+".pdf")
-        np.save(savename, [p0s, Transmission,Reflection,Reaminader,sums])
+        np.save(savename, [p0s, Transmission,Reflection,Remainder,sums])
     plt.show()
     
     
@@ -1043,23 +1042,23 @@ def exe_CAP(x0          = -30,
     # print()
     
     max_diff = np.max(np.abs(np.array(sums) - 1))
-    print(f"Max differnce of sums from 1: {max_diff}")
+    print(f"Max difference of sums from 1: {max_diff}")
     # print("dPr_dp:", np.min(dPr_dp), np.max(dPr_dp), np.mean(dPr_dp), np.std(dPr_dp))
     # print("dPl_dp:", np.min(dPl_dp), np.max(dPl_dp), np.mean(dPl_dp), np.std(dPl_dp))
 
     # print()
-    # print(fininsh_l)
+    # print(finish_l)
 
     if animate:
         n2 = int(n_p0/2)
-        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,fininsh_l[ 0],fininsh_l[ 0]*dts[ 0],int(fininsh_l[ 0]/200),V0,w,s,d,gamma_0s[ 0],R_part)
-        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,fininsh_l[n2],fininsh_l[n2]*dts[n2],int(fininsh_l[n2]/200),V0,w,s,d,gamma_0s[n2],R_part)
-        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,fininsh_l[-1],fininsh_l[-1]*dts[-1],int(fininsh_l[-1]/200),V0,w,s,d,gamma_0s[-1],R_part)
+        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,finish_l[ 0],finish_l[ 0]*dts[ 0],int(finish_l[ 0]/200),V0,w,s,d,gamma_0s[ 0],R_part,pot_2)
+        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,finish_l[n2],finish_l[n2]*dts[n2],int(finish_l[n2]/200),V0,w,s,d,gamma_0s[n2],R_part,pot_2)
+        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,finish_l[-1],finish_l[-1]*dts[-1],int(finish_l[-1]/200),V0,w,s,d,gamma_0s[-1],R_part,pot_2)
         # exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
         # exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
         # exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
 
-    return p0s,Transmission,Reflection,Reaminader,sums,k_fft,phi2s
+    return p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
 
 
 def exe_CAP_anim(x0          = -50,
@@ -1076,7 +1075,8 @@ def exe_CAP_anim(x0          = -50,
                  s           = 25,
                  d           = 2,
                  gamma_      = .0045,
-                 R_part      = .8,
+                #  R_part      = .8,
+                 R_part      = .65, # .75,
                  pot_2       = 1,
                  ):
 
@@ -1085,7 +1085,8 @@ def exe_CAP_anim(x0          = -50,
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
-    gamma_0 = p0 * 1 / 10000
+    gamma_0 = p0**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
+    # gamma_0 = p0 * 1 / 10000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -1104,9 +1105,6 @@ def exe_CAP_anim(x0          = -50,
 
     res_psi = solve_while_plotting(x, psis, Hamiltonians, times, plot_every, labels, 
                                    time_propagator=Magnus_propagator, V=potential, CAP=[CAP_vector, exp_CAP_vector_dt, CAP_locs]) 
-    
-    # if np.any(psis[0]-res_psi[0] != 0.+0.j):
-    #     print("afasfsad")
         
     # print(psis[0]-res_psi[0])
     
@@ -1158,12 +1156,12 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att5"
+    savename = "att7"
     
-    p0_min  = .2
+    p0_min  = .3
     p0_max  = 6
-    n_p0    = 200
-    anim    = False
+    n_p0    = 3
+    anim    = True
     
     # exe_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
     # exit()
@@ -1172,7 +1170,7 @@ if __name__ == "__main__":
     cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=300, n=1024, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
     cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=300, n=1024, t_steps=200, do_save=True, save_name=savename) 
-    # p0s,Transmission,Reflection,Reaminader,sums,k_fft,phi2s
+    # p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
     reg_sing = exe_2_4(x0          = -30,
@@ -1181,7 +1179,7 @@ if __name__ == "__main__":
                        p0_max      = p0_max,
                        n_p0        = n_p0,
                        tau         = 0,
-                       L           = 800,
+                       L           = 700,
                        n           = 2048,
                        V0          = 3,
                        w           = .5,
@@ -1198,7 +1196,7 @@ if __name__ == "__main__":
                        p0_max      = p0_max,
                        n_p0        = n_p0,
                        tau         = 0,
-                       L           = 800,
+                       L           = 700,
                        n           = 2048,
                        V0          = 3,
                        w           = .5,
@@ -1208,7 +1206,7 @@ if __name__ == "__main__":
                        animate     = anim,
                        do_save     = True,
                        save_name   = savename,)
-    # p0s,trans_proability,refle_proability,trap_proability,k_fft,phi2s
+    # p0s,trans_probability,refle_probability,trap_probability,k_fft,phi2s
     
     # plt.plot(reg_doub[0], np.abs((reg_doub[1] - cap_doub[1])/reg_doub[1]), label="T double")
     # plt.plot(reg_doub[0], np.abs((reg_doub[2] - cap_doub[2])/reg_doub[2]), label="R double")
@@ -1266,5 +1264,12 @@ if __name__ == "__main__":
     # exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),8,V0,w,s,d,0)
     
     end_time = time()
-    print("Total runtime: {:.4f} s.".format(end_time-start_time))
+    total_time = end_time-start_time
+    total_time_min = total_time//60
+    total_time_sec = (total_time % 60) # * 60
+    total_time_hou = total_time_min//60
+    total_time_min = (total_time_min % 60) # * 60
+    total_time_mil = (total_time-int(total_time))*1000
+    print("Total runtime: {:.4f} s.".format(total_time))
+    print("Total runtime: {:02d}h:{:02d}m:{:02d}s:{:02d}ms.".format(int(total_time_hou),int(total_time_min),int(total_time_sec),int(total_time_mil)))
     
