@@ -127,7 +127,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
     # plot the initial wave functions
     lines = [(ax.plot(x, np.abs(psis[i])**2, label=labels[i]))[0] for i in range(len(psis))]
     if len(analytical) > 0:
-        line_anal, = ax.plot(x, analytical[0], '--', label="Analytical") # TODO: is behind the grid
+        line_anal, = ax.plot(x, analytical[0], '--', label="Analytical", zorder=2) 
 
 
     if len(psis0) == 1: # or psis0.count(psis0[0]) > 1:
@@ -234,7 +234,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
         
         Transmission = [Transmission[i] * 2 * dt for i in range(len(psis))]
         Reflection   = [Reflection  [i] * 2 * dt for i in range(len(psis))]
-        Remainder   = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
+        Remainder    = [np.sum(np.abs(psis[i])**2) for i in range(len(psis))]
     
         print()
         print(f"Transmission: {Transmission}.")
@@ -278,7 +278,7 @@ def solve_while_plotting(x, psis0, Hamiltonians, times, plot_every, labels, time
             ax1.plot(k_fft,                    phi2[p],       label="Total") # label=r"$dP/dp$" ) # /inte
         ax1.set_xlabel(r"$p$")
         # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-        ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
+        ax1.set_ylabel(r"$dP/dp$") 
         # plt.yscale("log")
         ax1.grid()
         ax1.legend()
@@ -413,7 +413,6 @@ def exe_1_8(x0          = -20,
 
 def rectangular_potential(x, V0, s, w):
     adjust = x[np.where(np.min(np.abs(x)) == np.abs(x))[0][0]] # we adjust the grid slightly so that the peak is exactly V0
-    # print(adjust, np.max( V0 / (1 + np.exp(s * (np.abs(x-adjust) - w/2)))))
     return sp.diags( V0 / (1 + np.exp(s * (np.abs(x-adjust) - w/2))))
 
 
@@ -567,8 +566,9 @@ def exe_2_4(x0          = -30,
     for p in tqdm(range(len(p0s))):
 
         p0 = p0s[p]
+        T = np.min(((L/4 - x0)/(p0), 40/p0))
         psi         = [psi_single_initial(x,x0,sigmap,p0,tau)]
-        Hamiltonian = [make_fft_Hamiltonian(n, L,(L/4 - x0)/(p0), V=potential)[0]] # T = (L/4 - x0)/p0
+        Hamiltonian = [make_fft_Hamiltonian(n, L, T, V=potential)[0]] # T = (L/4 - x0)/p0 # TODO: change time so it's not too long for low p0
 
         res_psi = solve_no_plotting(psi, Hamiltonian)[0]
 
@@ -617,7 +617,7 @@ def exe_2_4(x0          = -30,
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_noCAP"
         plt.savefig(savename+".pdf")
-        np.save(savename, [p0s, trans_probability,refle_probability,trap_probability])
+        np.save(savename, np.array([p0s, trans_probability,refle_probability,trap_probability], dtype=object))
     plt.show()
     
     max_diff = np.max(np.abs(np.array(trans_probability) + np.array(refle_probability) - 1))
@@ -641,7 +641,7 @@ def exe_2_4(x0          = -30,
         else:
             savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_noCAP"
         plt.savefig(savename+".pdf")
-        np.save(savename, [p0s, k_fft,phi2s])
+        np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
     plt.show()
     
 
@@ -658,7 +658,7 @@ def exe_2_4(x0          = -30,
         speed = 10
         n2 = int(n_p0/2)
         print(p0s[ 0])
-        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),speed,V0,w,s,d,pot_2)
+        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,np.min(((L/4 - x0)/(p0s[ 0]),40/p0s[ 0])),speed,V0,w,s,d,pot_2)
         print(p0s[n2])
         exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),speed,V0,w,s,d,pot_2)
         print(p0s[-1])
@@ -744,8 +744,8 @@ def exe_2_4_anim(x0          = -50,
     ax1.plot(k_fft, phi2, label="No CAP") # label=r"$dP/dp$" )
     ax1.set_xlabel(r"$p$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    ax1.set_ylabel(r"$dP/dp$") # TODO: find better name
-    ax1.set_xlim((-np.abs(p0)*2,np.abs(p0)*2))
+    ax1.set_ylabel(r"$dP/dp$") 
+    # ax1.set_xlim((-np.abs(p0)*2,np.abs(p0)*2))
     # plt.yscale("log")
     ax1.grid()
     ax1.legend()
@@ -758,7 +758,7 @@ def exe_2_4_anim(x0          = -50,
 
 def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
 
-    CAP_locs = np.where(np.abs(x) > R)[0] # TODO: make more efficient
+    CAP_locs = np.where(np.abs(x) > R)[0] 
     CAP_R_locs = np.where(x >  R)[0]
     CAP_L_locs = np.where(x < -R)[0]
     Gamma_vector           = np.zeros_like(x)
@@ -785,9 +785,9 @@ def exe_CAP(x0          = -30,
             pot_2       = 1,
             animate     = False,
             gamma_0     = .005,
-            R_part      = .65, # .75,
+            R_part      = .75,
             do_save     = False,
-            save_name    = None,
+            save_name   = None,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
@@ -797,7 +797,8 @@ def exe_CAP(x0          = -30,
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     p0s = np.linspace(p0_min, p0_max, n_p0)
-    gamma_0s = p0s**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
+    gamma_0s = p0s * 6 / 1000 # TODO: quadratic might work better
+    # gamma_0s = p0s**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
 
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
 
@@ -816,6 +817,7 @@ def exe_CAP(x0          = -30,
     finish_l = []
 
     Ts  = (L/4 + np.abs(x0))/np.abs(p0s)
+    # Ts[Ts > 40/p0s] = 40/p0s  
     dts = Ts/t_steps
     
     n = len(x)
@@ -954,7 +956,7 @@ def exe_CAP(x0          = -30,
     plt.plot(p0s, sums,  label="Sum")
     plt.xlabel(r"$p_0$")
     # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    plt.ylabel("Probability") # TODO: find better name
+    plt.ylabel("Probability") 
     plt.grid()
     plt.legend()
     title = "double potential" if pot_2 == 1 else "single potential"
@@ -966,7 +968,7 @@ def exe_CAP(x0          = -30,
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_CAP"
         plt.savefig(savename+".pdf")
-        np.save(savename, [p0s, Transmission,Reflection,Remainder,sums])
+        np.save(savename, np.array([p0s, Transmission,Reflection,Remainder,sums], dtype=object))
     plt.show()
     
     
@@ -1013,7 +1015,7 @@ def exe_CAP(x0          = -30,
         else:
             savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_CAP"
         plt.savefig(savename+".pdf")
-        np.save(savename, [p0s, k_fft,phi2s])
+        np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
     plt.show()
     
     
@@ -1024,7 +1026,7 @@ def exe_CAP(x0          = -30,
     # # plt.plot(p0s, dPl_dp+dPr_dp,  label="Sum")
     # plt.xlabel(r"$p_0$")
     # # plt.ylabel(r"$\left|\Psi\left(x \right)\right|^2$")
-    # plt.ylabel(r"$dP/dp$") # TODO: find better name
+    # plt.ylabel(r"$dP/dp$") # find better name
     # # plt.yscale("log")
     # plt.grid()
     # plt.legend()
@@ -1075,8 +1077,7 @@ def exe_CAP_anim(x0          = -50,
                  s           = 25,
                  d           = 2,
                  gamma_      = .0045,
-                #  R_part      = .8,
-                 R_part      = .65, # .75,
+                 R_part      = .75,
                  pot_2       = 1,
                  ):
 
@@ -1085,8 +1086,8 @@ def exe_CAP_anim(x0          = -50,
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
-    gamma_0 = p0**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
-    # gamma_0 = p0 * 1 / 10000
+    # gamma_0 = p0**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
+    gamma_0 = p0 * 6 / 1000
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -1156,20 +1157,20 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att7"
+    savename = "att10"
     
-    p0_min  = .3
+    p0_min  = .2
     p0_max  = 6
-    n_p0    = 3
-    anim    = True
+    n_p0    = 200
+    anim    = False
     
     # exe_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
     # exit()
     
     print("\nCAP single potential: ")
-    cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=300, n=1024, t_steps=200, do_save=True, save_name=savename) 
+    cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
-    cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=300, n=1024, t_steps=200, do_save=True, save_name=savename) 
+    cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     # p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
@@ -1179,8 +1180,8 @@ if __name__ == "__main__":
                        p0_max      = p0_max,
                        n_p0        = n_p0,
                        tau         = 0,
-                       L           = 700,
-                       n           = 2048,
+                       L           = 500,
+                       n           = 1024,
                        V0          = 3,
                        w           = .5,
                        s           = 25,
@@ -1196,8 +1197,8 @@ if __name__ == "__main__":
                        p0_max      = p0_max,
                        n_p0        = n_p0,
                        tau         = 0,
-                       L           = 700,
-                       n           = 2048,
+                       L           = 500,
+                       n           = 1024,
                        V0          = 3,
                        w           = .5,
                        s           = 25,
@@ -1214,7 +1215,7 @@ if __name__ == "__main__":
     # plt.plot(reg_doub[0], np.abs((reg_sing[2] - cap_sing[2])/reg_sing[2]), label="R single")
     # plt.legend()
     # plt.xlabel(r"$p_0$")
-    # plt.ylabel("Difference") # TODO: find better name
+    # plt.ylabel("Difference") 
     # plt.grid()
     # plt.title("Relative difference between CAP and regular simulation.")
     # plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
@@ -1226,10 +1227,22 @@ if __name__ == "__main__":
     plt.plot(reg_doub[0], np.abs(reg_doub[2] - cap_doub[2]), '--', label="R double")
     plt.legend()
     plt.xlabel(r"$p_0$")
-    plt.ylabel("Difference") # TODO: find better name
+    plt.ylabel("Difference") 
     plt.grid()
     plt.title("Absolute difference between CAP and regular simulation.")
     plt.savefig("TR_results/"+savename+"_TR_abs_diff.pdf") 
+    plt.show()
+    
+    plt.plot(reg_doub[0][3:], np.abs(reg_sing[1][3:] - cap_sing[1][3:]), label="T single")
+    plt.plot(reg_doub[0][3:], np.abs(reg_sing[2][3:] - cap_sing[2][3:]), '--', label="R single")
+    plt.plot(reg_doub[0][3:], np.abs(reg_doub[1][3:] - cap_doub[1][3:]), label="T double")
+    plt.plot(reg_doub[0][3:], np.abs(reg_doub[2][3:] - cap_doub[2][3:]), '--', label="R double")
+    plt.legend()
+    plt.xlabel(r"$p_0$")
+    plt.ylabel("Difference") 
+    plt.grid()
+    plt.title("Absolute difference between CAP and regular simulation.")
+    plt.savefig("TR_results/"+savename+"_TR_abs_diff0.pdf") 
     plt.show()
     
     
@@ -1252,8 +1265,29 @@ if __name__ == "__main__":
     plt.xlabel(r"$p_0$")
     plt.ylabel(r"$k$")
     plt.title(r"$dP/dp$ for both CAP and regular simulation with single potential.")
-    plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
+    plt.savefig("dPdp_results/"+savename+"_phi2_diff_single.pdf") 
     plt.show()
+    
+    if (X == X0).any() and (Y == Y0).any():
+        plt.contourf(X0,Y0, np.abs(cap_doub[-1].T-reg_doub[-1].T), alpha=1., antialiased=True)
+        plt.colorbar(label="Difference")
+        # plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
+        # plt.colorbar(label="Regular")
+        plt.xlabel(r"$p_0$")
+        plt.ylabel(r"$k$")
+        plt.title(r"$dP/dp$ for both CAP and regular simulation with double potential.")
+        plt.savefig("dPdp_results/"+savename+"_phi2_diff_double0.pdf") 
+        plt.show()
+        
+        plt.contourf(X0,Y0, np.abs(cap_sing[-1].T-reg_sing[-1].T), alpha=1., antialiased=True)
+        plt.colorbar(label="Difference")
+        # plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
+        # plt.colorbar(label="Regular")
+        plt.xlabel(r"$p_0$")
+        plt.ylabel(r"$k$")
+        plt.title(r"$dP/dp$ for both CAP and regular simulation with single potential.")
+        plt.savefig("dPdp_results/"+savename+"_phi2_diff_single0.pdf") 
+        plt.show()
     
     
     # n2 = int(100/2)
@@ -1269,7 +1303,7 @@ if __name__ == "__main__":
     total_time_sec = (total_time % 60) # * 60
     total_time_hou = total_time_min//60
     total_time_min = (total_time_min % 60) # * 60
-    total_time_mil = (total_time-int(total_time))*1000
+    total_time_mil = (total_time-round(total_time))*1000
     print("Total runtime: {:.4f} s.".format(total_time))
     print("Total runtime: {:02d}h:{:02d}m:{:02d}s:{:02d}ms.".format(int(total_time_hou),int(total_time_min),int(total_time_sec),int(total_time_mil)))
     

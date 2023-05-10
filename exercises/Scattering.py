@@ -88,14 +88,15 @@ def align_yaxis(ax1, ax2, scale_1=1, scale_2=1):
     
 
 def rectangular_potential(x, V0, s, w):
-    return sp.diags( V0 / (1 + np.exp(s * (np.abs(x) - w/2)))) # TODO: mak sure this always reaches V0
+    adjust = x[np.where(np.min(np.abs(x)) == np.abs(x))[0][0]] # we adjust the grid slightly so that the peak is exactly V0
+    return sp.diags( V0 / (1 + np.exp(s * (np.abs(x-adjust) - w/2))))
 
 
 def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
     # a complex absorbing potential  with a square gamma function
     # Makes it so that when the wave function reaches R it starts being absorbed
     
-    CAP_locs = np.where(np.abs(x) > R)[0] # TODO: make more efficient
+    CAP_locs = np.where(np.abs(x) > R)[0] 
     CAP_R_locs = np.where(x >  R)[0]
     CAP_L_locs = np.where(x < -R)[0]
     Gamma_vector           = np.zeros_like(x)
@@ -153,7 +154,7 @@ def initalise_plot_figures(x, psis_initial, plot_labels, k_fft=None, analytical_
     lines_psi = np.array([(ax.plot(x, np.abs(psis_initial[p])**2, label=plot_labels[p]))[0] for p in range(len(psis_initial))])
     
     if len(analytical_plot) > 0:
-        line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical") # TODO: is behind the grid
+        line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical", zorder=2) 
     else:
         line_anal = None
     
@@ -249,7 +250,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         dP_dp  = np.zeros((len(psis), len(psis[0])))
     
     
-    if do_live_plot: # TODO: consider moving this to another function
+    if do_live_plot: 
     
         plt.ion()
         
@@ -284,7 +285,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         lines_psi = np.array([(ax.plot(x, np.abs(psis[p])**2, label=plot_labels[p]))[0] for p in range(len(psis))])
         
         if len(analytical_plot) > 0:
-            line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical") # TODO: is behind the grid
+            line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical", zorder=2) 
         
         # if we want to allways show the initial wave function in the background
         if do_plot_initial:
