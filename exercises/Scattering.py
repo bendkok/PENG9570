@@ -630,6 +630,9 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
     plt.show()
     
     
+    
+    
+    
 def run_anim_CAP(x0          = -30,
                  sigmap      = 0.1,
                  p0          = 1.9,
