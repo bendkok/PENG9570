@@ -532,7 +532,7 @@ def exe_2_4(x0          = -30,
             pot_2       = 1,
             animate     = False,
             do_save     = False,
-            save_name    = None,
+            save_name   = None,
             ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
@@ -563,13 +563,20 @@ def exe_2_4(x0          = -30,
 
     phi2s = np.zeros((len(p0s), len(x)))
     norms = np.zeros(len(p0s))
+
+    # Ts = np.array([np.min(((L/4 - x0)/(p0s[p]), 40/p0s[p])) for p in range(len(p0s))])
+    # print((L/4 - x0)/(p0s))
+    # print(40/p0s)
+    
+    Ts = (L/4 - x0)/p0s 
+    # Ts[np.where(p0s<1)[0]] = 40/p0s[np.where(p0s<1)[0]]
     
     for p in tqdm(range(len(p0s))):
 
         p0 = p0s[p]
-        T = np.min(((L/4 - x0)/(p0), 40/p0))
+        # T = np.min(((L/4 - x0)/(p0), 40/p0))
         psi         = [psi_single_initial(x,x0,sigmap,p0,tau)]
-        Hamiltonian = [make_fft_Hamiltonian(n, L, T, V=potential)[0]] # T = (L/4 - x0)/p0 # TODO: change time so it's not too long for low p0
+        Hamiltonian = [make_fft_Hamiltonian(n, L, Ts[p], V=potential)[0]] # T = (L/4 - x0)/p0 # TODO: change time so it's not too long for low p0
 
         res_psi = solve_no_plotting(psi, Hamiltonian)[0]
 
@@ -663,11 +670,11 @@ def exe_2_4(x0          = -30,
         speed = 10
         n2 = int(n_p0/2)
         print(p0s[ 0])
-        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,np.min(((L/4 - x0)/(p0s[ 0]),40/p0s[ 0])),speed,V0,w,s,d,pot_2)
+        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,Ts[ 0],speed,V0,w,s,d,pot_2)
         print(p0s[n2])
-        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),speed,V0,w,s,d,pot_2)
+        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,Ts[n2],speed,V0,w,s,d,pot_2)
         print(p0s[-1])
-        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),speed,V0,w,s,d,pot_2)
+        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,Ts[-1],speed,V0,w,s,d,pot_2)
         
     return p0s,trans_probability,refle_probability,trap_probability,k_fft,phi2s
 
@@ -1079,7 +1086,7 @@ def exe_CAP_anim(x0          = -50,
                  L           = 400,
                  n           = 1024,
                  t_steps     = 200,
-                 T0          = 100,
+                 T0          = None,
                  plot_every  = 2,
                  V0          = 2,
                  w           = 1,
@@ -1091,7 +1098,7 @@ def exe_CAP_anim(x0          = -50,
                  ):
 
 
-    T = np.max(((L/4 + np.abs(x0))/np.abs(p0)*2.5, 0))
+    T = (L/4 + np.abs(x0))/np.abs(p0)*2.5 if T0 is None else T0
     # print((L/4 - x0)/(p0)*2, L/4, L/4-x0, (p0)*2)
     # exit()
 
@@ -1166,11 +1173,11 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att11"
+    savename = "att12"
     
     p0_min  = .4
     p0_max  = 6
-    n_p0    = 200
+    n_p0    = 150
     V0      = 2
     w       = .5
     s       = 25
@@ -1250,17 +1257,17 @@ if __name__ == "__main__":
     plt.savefig("TR_results/"+savename+"_TR_abs_diff.pdf") 
     plt.show()
     
-    plt.plot(reg_doub[0][3:], np.abs(reg_sing[1][3:] - cap_sing[1][3:]), label="T single")
-    plt.plot(reg_doub[0][3:], np.abs(reg_sing[2][3:] - cap_sing[2][3:]), '--', label="R single")
-    plt.plot(reg_doub[0][3:], np.abs(reg_doub[1][3:] - cap_doub[1][3:]), label="T double")
-    plt.plot(reg_doub[0][3:], np.abs(reg_doub[2][3:] - cap_doub[2][3:]), '--', label="R double")
-    plt.legend()
-    plt.xlabel(r"$p_0$")
-    plt.ylabel("Difference") 
-    plt.grid()
-    plt.title("Absolute difference between CAP and regular simulation.")
-    plt.savefig("TR_results/"+savename+"_TR_abs_diff0.pdf") 
-    plt.show()
+    # plt.plot(reg_doub[0][3:], np.abs(reg_sing[1][3:] - cap_sing[1][3:]), label="T single")
+    # plt.plot(reg_doub[0][3:], np.abs(reg_sing[2][3:] - cap_sing[2][3:]), '--', label="R single")
+    # plt.plot(reg_doub[0][3:], np.abs(reg_doub[1][3:] - cap_doub[1][3:]), label="T double")
+    # plt.plot(reg_doub[0][3:], np.abs(reg_doub[2][3:] - cap_doub[2][3:]), '--', label="R double")
+    # plt.legend()
+    # plt.xlabel(r"$p_0$")
+    # plt.ylabel("Difference") 
+    # plt.grid()
+    # plt.title("Absolute difference between CAP and regular simulation.")
+    # plt.savefig("TR_results/"+savename+"_TR_abs_diff0.pdf") 
+    # plt.show()
     
     
     X,Y   = np.meshgrid(reg_doub[0], reg_doub[-2])
@@ -1285,7 +1292,7 @@ if __name__ == "__main__":
     plt.savefig("dPdp_results/"+savename+"_phi2_diff_single.pdf") 
     plt.show()
     
-    if (X == X0).any() and (Y == Y0).any():
+    if np.array_equal(X, X0) and np.array_equal(Y, Y0):
         plt.contourf(X0,Y0, np.abs(cap_doub[-1].T-reg_doub[-1].T), alpha=1., antialiased=True)
         plt.colorbar(label="Difference")
         # plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
@@ -1320,7 +1327,7 @@ if __name__ == "__main__":
     total_time_sec = (total_time % 60) # * 60
     total_time_hou = total_time_min//60
     total_time_min = (total_time_min % 60) # * 60
-    total_time_mil = (total_time-round(total_time))*1000
+    total_time_mil = (total_time-int(total_time))*1000
     print("Total runtime: {:.4f} s.".format(total_time))
     print("Total runtime: {:02d}h:{:02d}m:{:02d}s:{:02d}ms.".format(int(total_time_hou),int(total_time_min),int(total_time_sec),int(total_time_mil)))
     
