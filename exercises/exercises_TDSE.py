@@ -5,6 +5,7 @@ Created on Tue Mar 14 11:43:08 2023
 @author: benda
 """
 
+import os
 import numpy as np
 import scipy as sc
 import scipy.sparse as sp
@@ -616,6 +617,8 @@ def exe_2_4(x0          = -30,
             savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_noCAP"
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_noCAP"
+
+        os.makedirs(savename, exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, trans_probability,refle_probability,trap_probability], dtype=object))
     plt.show()
@@ -640,6 +643,8 @@ def exe_2_4(x0          = -30,
             savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_noCAP"
         else:
             savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_noCAP"
+        
+        os.makedirs(savename, exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
     plt.show()
@@ -967,6 +972,8 @@ def exe_CAP(x0          = -30,
             savename = "TR_results/TR_" + ("double" if pot_2 else "single") + "_CAP"
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_CAP"
+        
+        os.makedirs(savename, exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, Transmission,Reflection,Remainder,sums], dtype=object))
     plt.show()
@@ -1014,6 +1021,8 @@ def exe_CAP(x0          = -30,
             savename = "dPdp_results/dP_dt_" + ("double" if pot_2 else "single") + "_CAP"
         else:
             savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_CAP"
+        
+        os.makedirs(savename, exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
     plt.show()
@@ -1159,7 +1168,7 @@ if __name__ == "__main__":
     
     savename = "att11"
     
-    p0_min  = .2
+    p0_min  = .4
     p0_max  = 6
     n_p0    = 200
     V0      = 2
@@ -1225,6 +1234,9 @@ if __name__ == "__main__":
     # plt.title("Relative difference between CAP and regular simulation.")
     # plt.savefig("TR_results/"+savename+"_TR_diff.pdf") 
     # plt.show()
+    
+    os.makedirs("TR_results", exist_ok=True) # check that folder exists
+    os.makedirs("dPdp_results", exist_ok=True) # check that folder exists
     
     plt.plot(reg_doub[0], np.abs(reg_sing[1] - cap_sing[1]), label="T single")
     plt.plot(reg_doub[0], np.abs(reg_sing[2] - cap_sing[2]), '--', label="R single")
