@@ -1157,24 +1157,29 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att10"
+    savename = "att11"
     
     p0_min  = .2
     p0_max  = 6
     n_p0    = 200
+    V0      = 2
+    w       = .5
+    s       = 25
+    d       = 2
+    x0      = -30
     anim    = False
     
     # exe_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
     # exit()
     
     print("\nCAP single potential: ")
-    cap_sing = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    cap_sing = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
-    cap_doub = exe_CAP(animate=anim, x0=-30, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    cap_doub = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     # p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
-    reg_sing = exe_2_4(x0          = -30,
+    reg_sing = exe_2_4(x0          = x0,
                        sigmap      = 0.1,
                        p0_min      = p0_min,
                        p0_max      = p0_max,
@@ -1182,16 +1187,16 @@ if __name__ == "__main__":
                        tau         = 0,
                        L           = 500,
                        n           = 1024,
-                       V0          = 3,
-                       w           = .5,
-                       s           = 25,
-                       d           = 2,
+                       V0          = V0,
+                       w           = w,
+                       s           = s,
+                       d           = d,
                        pot_2       = 0,
                        animate     = anim, 
                        do_save     = True,
                        save_name   = savename,)
     print("\nNo CAP double potential: ")
-    reg_doub = exe_2_4(x0          = -30,
+    reg_doub = exe_2_4(x0          = x0,
                        sigmap      = 0.1,
                        p0_min      = p0_min,
                        p0_max      = p0_max,
@@ -1199,10 +1204,10 @@ if __name__ == "__main__":
                        tau         = 0,
                        L           = 500,
                        n           = 1024,
-                       V0          = 3,
-                       w           = .5,
-                       s           = 25,
-                       d           = 2,
+                       V0          = V0,
+                       w           = w,
+                       s           = s,
+                       d           = d,
                        pot_2       = 1,
                        animate     = anim,
                        do_save     = True,
