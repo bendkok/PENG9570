@@ -625,7 +625,7 @@ def exe_2_4(x0          = -30,
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_noCAP"
 
-        os.makedirs(savename, exist_ok=True) # check that folder exists
+        os.makedirs("TR_results", exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, trans_probability,refle_probability,trap_probability], dtype=object))
     plt.show()
@@ -651,7 +651,7 @@ def exe_2_4(x0          = -30,
         else:
             savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_noCAP"
         
-        os.makedirs(savename, exist_ok=True) # check that folder exists
+        os.makedirs("dPdp_results", exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
     plt.show()
@@ -980,7 +980,7 @@ def exe_CAP(x0          = -30,
         else:
             savename = "TR_results/" + save_name + "TR_" + ("double" if pot_2 else "single") + "_CAP"
         
-        os.makedirs(savename, exist_ok=True) # check that folder exists
+        os.makedirs("TR_results", exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, Transmission,Reflection,Remainder,sums], dtype=object))
     plt.show()
@@ -1029,7 +1029,7 @@ def exe_CAP(x0          = -30,
         else:
             savename = "dPdp_results/" + save_name + "dP_dt_" + ("double" if pot_2 else "single") + "_CAP"
         
-        os.makedirs(savename, exist_ok=True) # check that folder exists
+        os.makedirs("dPdp_results", exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
         np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
     plt.show()
@@ -1173,15 +1173,15 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att12"
+    savename = "att13"
     
     p0_min  = .4
     p0_max  = 6
     n_p0    = 150
-    V0      = 2
-    w       = .5
+    V0      = 2.5
+    w       = .4
+    d       = 1.5
     s       = 25
-    d       = 2
     x0      = -30
     anim    = False
     
