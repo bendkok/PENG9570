@@ -637,9 +637,9 @@ def exe_2_4(x0          = -30,
     # check if it is properly normalised
     print(f"Max norm: {np.max(norms)}. Min norm: {np.min(norms)}.") # should be ~1
     X,Y = np.meshgrid(p0s, k_fft)
-    plt.contourf(X,Y, phi2s.T) # , , norm="log")
+    plt.contourf(X,Y, phi2s.T, levels=30) # , , norm="log")
     plt.xlabel(r"$p_0$")
-    plt.ylabel(r"$k$")
+    plt.ylabel(r"$p$")
     plt.colorbar(label=r"$dP/dp$")
     title = "double potential" if pot_2 == 1 else "single potential"
     title = "Velocity density distribution for " + title + " without CAP.\n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
@@ -653,11 +653,25 @@ def exe_2_4(x0          = -30,
         
         os.makedirs("dPdp_results", exist_ok=True) # check that folder exists
         plt.savefig(savename+".pdf")
-        np.save(savename, np.array([p0s, k_fft,phi2s], dtype=object))
+        np.save(savename, np.array([p0s,k_fft,phi2s], dtype=object))
     plt.show()
     
+    # mean_dPdp = [np.mean(phi2) for phi2 in phi2s] 
+    # np.array([sc.signal.find_peaks(phi2, height=np.max(phi2)*0.05)[0] for phi2 in phi2s]) 
+    
+    # mu = np.sum(k_fft[512:]*phi2s[-1][512:])/np.sum(phi2s[-1][512:])
+    # sigma2 = np.sum((k_fft[512:]-mu)**2*phi2s[-1][512:])/np.sum(phi2s[-1][512:])
+    
+    # np.sqrt(np.pi*sigma2) * np.exp(-0.5*((k_fft-mu)**2/sigma2))
+    
+    # tmp = np.sqrt(np.pi*sigma) * np.exp(-0.5*((k_fft[512:]-mu)**2/sigma))
+    # tmp = tmp/np.max(tmp)
+    # tmp0 = phi2s[-1][512:]
+    # tmp0 = tmp0/np.max(tmp0)
+    
+    # np.mean((tmp-tmp0)**2) 
 
-    # plt.plot(x, np.abs(res_psi)**2)
+    # plt.plot(x, np.abs(res_psi)**2) 
     # plt.plot(x, potential.diagonal(), '--') # /np.max(np.abs(res_psi)**2)
     # plt.ylim(top = np.max(np.abs(res_psi)**2) * 1.2, bottom = -0.01)
     # plt.show()
@@ -1015,9 +1029,9 @@ def exe_CAP(x0          = -30,
     # print(f"Max norm: {np.max(inte)}. Min norm: {np.min(inte)}. Mean norm: {np.mean(inte)}.") # should be ~1
     X,Y = np.meshgrid(p0s, k_fft)
     # plt.contourf(X,Y, phi2s.T, norm="log")
-    plt.contourf(X,Y, np.abs(phi2s.T)) # , , norm="log")
+    plt.contourf(X,Y, np.abs(phi2s.T), levels=30) # , , norm="log")
     plt.xlabel(r"$p_0$")
-    plt.ylabel(r"$k$")
+    plt.ylabel(r"$p$")
     plt.colorbar(label=r"$dP/dp$")
     title = "double potential" if pot_2 == 1 else "single potential"
     title = "Velocity density distribution for " + title + " with CAP.    \n" +  r" $V_0$" + f"= {V0}, d = {d}, w = {w}."
@@ -1173,12 +1187,12 @@ if __name__ == "__main__":
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att13"
+    savename = "att14"
     
     p0_min  = .4
     p0_max  = 6
     n_p0    = 150
-    V0      = 2.5
+    V0      = 4
     w       = .4
     d       = 1.5
     s       = 25
@@ -1192,6 +1206,7 @@ if __name__ == "__main__":
     cap_sing = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
     cap_doub = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    
     # p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
@@ -1272,43 +1287,43 @@ if __name__ == "__main__":
     
     X,Y   = np.meshgrid(reg_doub[0], reg_doub[-2])
     X0,Y0 = np.meshgrid(cap_doub[0], cap_doub[-2])
-    plt.contourf(X0,Y0, np.abs(cap_doub[-1].T), alpha=1., antialiased=True)
+    plt.contourf(X0,Y0, np.abs(cap_doub[-1].T), levels=30, alpha=1., antialiased=True)
     plt.colorbar(label="CAP")
-    plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
+    plt.contourf(X, Y,  np.abs(reg_doub[-1].T), levels=30, alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
     plt.colorbar(label="Regular")
     plt.xlabel(r"$p_0$")
-    plt.ylabel(r"$k$")
+    plt.ylabel(r"$p$")
     plt.title(r"$dP/dp$ for both CAP and regular simulation with double potential.")
     plt.savefig("dPdp_results/"+savename+"_phi2_diff_double.pdf") 
     plt.show()
     
-    plt.contourf(X0,Y0, np.abs(cap_sing[-1].T), alpha=1., antialiased=True)
+    plt.contourf(X0,Y0, np.abs(cap_sing[-1].T), levels=30, alpha=1., antialiased=True)
     plt.colorbar(label="CAP")
-    plt.contourf(X, Y,  np.abs(reg_sing[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T single") # , , norm="log") 
+    plt.contourf(X, Y,  np.abs(reg_sing[-1].T), levels=30, alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T single") # , , norm="log") 
     plt.colorbar(label="Regular")
     plt.xlabel(r"$p_0$")
-    plt.ylabel(r"$k$")
+    plt.ylabel(r"$p$")
     plt.title(r"$dP/dp$ for both CAP and regular simulation with single potential.")
     plt.savefig("dPdp_results/"+savename+"_phi2_diff_single.pdf") 
     plt.show()
     
     if np.array_equal(X, X0) and np.array_equal(Y, Y0):
-        plt.contourf(X0,Y0, np.abs(cap_doub[-1].T-reg_doub[-1].T), alpha=1., antialiased=True)
+        plt.contourf(X0,Y0, np.abs(cap_doub[-1].T-reg_doub[-1].T), levels=30, alpha=1., antialiased=True)
         plt.colorbar(label="Difference")
         # plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
         # plt.colorbar(label="Regular")
         plt.xlabel(r"$p_0$")
-        plt.ylabel(r"$k$")
+        plt.ylabel(r"$p$")
         plt.title(r"$dP/dp$ for both CAP and regular simulation with double potential.")
         plt.savefig("dPdp_results/"+savename+"_phi2_diff_double0.pdf") 
         plt.show()
         
-        plt.contourf(X0,Y0, np.abs(cap_sing[-1].T-reg_sing[-1].T), alpha=1., antialiased=True)
+        plt.contourf(X0,Y0, np.abs(cap_sing[-1].T-reg_sing[-1].T), levels=30, alpha=1., antialiased=True)
         plt.colorbar(label="Difference")
         # plt.contourf(X, Y,  np.abs(reg_doub[-1].T), alpha=.4, antialiased=True, cmap=plt.colormaps["winter"], locator = ticker.MaxNLocator(prune = 'lower')) # , label="T double") # , norm="log")
         # plt.colorbar(label="Regular")
         plt.xlabel(r"$p_0$")
-        plt.ylabel(r"$k$")
+        plt.ylabel(r"$p$")
         plt.title(r"$dP/dp$ for both CAP and regular simulation with single potential.")
         plt.savefig("dPdp_results/"+savename+"_phi2_diff_single0.pdf") 
         plt.show()
