@@ -810,7 +810,7 @@ def exe_CAP(x0          = -30,
             d           = 2,
             pot_2       = 1,
             animate     = False,
-            gamma_0     = .005,
+            gamma_0     = 6 / 1000,
             R_part      = .75,
             do_save     = False,
             save_name   = None,
@@ -823,7 +823,7 @@ def exe_CAP(x0          = -30,
     print(f"Max potential = {np.max(potential.diagonal())} of {V0}.")
 
     p0s = np.linspace(p0_min, p0_max, n_p0)
-    gamma_0s = p0s * 6 / 1000 # TODO: quadratic might work better
+    gamma_0s = p0s * gamma_0 # 6 / 1000 # TODO: quadratic might work better
     # gamma_0s = p0s**1.7 * 1 / 1000 # 3 / 1000 # don't think linear is working
 
     # analytical   = np.array([psi_single_analytical(t, x, x0,sigmap,p0,tau) for t in times])
@@ -1182,12 +1182,12 @@ if __name__ == "__main__":
     # exe_2_4(pot_2=1, animate=True)
     # exe_2_4(pot_2=0, animate=True)
     
-    # exe_2_4_anim(pot_2=0)
+    # exe_2_4_anim(pot_2=1,p0=.6)
     # exe_CAP_anim(pot_2=0)
     # exe_2_4_anim(pot_2=1)
     # exe_CAP_anim(pot_2=1)
     
-    savename = "att14"
+    savename = "att15"
     
     p0_min  = .4
     p0_max  = 6
@@ -1198,14 +1198,15 @@ if __name__ == "__main__":
     s       = 25
     x0      = -30
     anim    = False
+    gamma_0 = 2 * 6 / 1000
     
     # exe_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
-    # exit()
+    exit()
     
     print("\nCAP single potential: ")
-    cap_sing = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    cap_sing = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, gamma_0=gamma_0, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
-    cap_doub = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    cap_doub = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, gamma_0=gamma_0, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     
     # p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
     
