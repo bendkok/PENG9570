@@ -158,7 +158,7 @@ def initalise_plot_figures(x, psis_initial, plot_labels, k_fft=None, analytical_
     else:
         line_anal = None
     
-    # if we want to allways show the initial wave function in the background
+    # if we want to always show the initial wave function in the background
     if do_plot_initial:
         # if there is only one wave function, or their initial value are the same
         if len(psis_initial) == 1 or (psis_initial[0] == psis_initial[1]).all(): # or psis_initial.count(psis_initial[0]) > 1:
@@ -213,7 +213,7 @@ def initalise_plot_figures(x, psis_initial, plot_labels, k_fft=None, analytical_
     # return figure, axes, lines_dP_dp, lines_dP_dp0, lines_psi, line_anal, line_initial, line_V, line_CAP
 
 
-def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_propagator, do_live_plot=True, do_dP_dp_plot=True, plot_every=1, plot_labels=[], analytical_plot=[], do_plot_initial=True, V_plot=None, CAP=None, do_save_psi=False, do_save_dPdp=False, save_every=1, do_CAP_plot=True, plot_title="Scattering.", midpoint=0):
+def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_propagator, do_live_plot=True, do_dP_dp_plot=True, plot_every=1, plot_labels=[], analytical_plot=[], do_plot_initial=True, V_plot=None, CAP=None, do_save_psi=False, do_save_dPdp=False, save_every=1, do_CAP_plot=True, plot_title="Scattering.", midpoint=0, pot_2=1):
     """
     Solves the TDSE for the given Ψs and Hamiltonians. The result can be plotted live if do_live_plot is True.
     """
@@ -287,7 +287,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         if len(analytical_plot) > 0:
             line_anal, = ax.plot(x, analytical_plot[0], '--', label="Analytical", zorder=2) 
         
-        # if we want to allways show the initial wave function in the background
+        # if we want to always show the initial wave function in the background
         if do_plot_initial:
             # if there is only one wave function, or their initial value are the same
             if len(psis_initial) == 1 or (psis_initial[0] == psis_initial[1]).all(): # or psis_initial.count(psis_initial[0]) > 1:
@@ -326,7 +326,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         
     
     """
-    In the next part, to avoid doing many if-test during the loop, we seperate the functionality out into various functions,
+    In the next part, to avoid doing many if-test during the loop, we separate the functionality out into various functions,
     and then use if-test to see which we add to lists we go through. 
     There is one general list, and one for updating the plots.
     """
@@ -417,7 +417,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         funcs_list.append(save_psis)
         
     if do_save_dPdp:
-        # this gives a savename with an appropiate amount of 0s
+        # this gives a savename with an appropriate amount of 0s
         np.save("psi_results/k_vector", k_fft[::save_every])
         savename_dPdp = f"psi_results/dPdp_{'CAP' if CAP is not None else 'reg'}_" + "{:0"+str(int(np.log10(len(times)))+1)+"}" # "{:05}"
         if CAP is not None:
@@ -439,6 +439,13 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         
         for func in funcs_list:
             func()
+        
+        if t in [0,25,30,35,42,120,140] and CAP is not None:
+            # np.save(f"report/psi_CAP_{t}_{pot_2}", psis)
+            figure.savefig(f"report/psi_CAP_{t}_{pot_2}.pdf")
+        elif t in [0,200,270,320,992]:
+            # np.save(f"report/psi_reg_{t}_{pot_2}", psis)
+            figure.savefig(f"report/psi_reg_{t}_{pot_2}.pdf")
             
         # finds the new values for psi
         for p in range(len(psis)):
@@ -468,7 +475,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         return psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft
     
     else:    
-        Transmission_loc  =  np.where(x>midpoint)[0]
+        Transmission_loc  = np.where(x>midpoint)[0]
         Transmission_prob = np.array([np.abs(psis[p][Transmission_loc])**2 for p in range(len(psis))])
         Transmission_pro  = np.array([np.trapz(Transmission_prob[p], x[Transmission_loc]) for p in range(len(psis))])
         
@@ -506,8 +513,8 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
     dx2_2pi  = dx**2 / (2*np.pi)
     
     load_psi  = load_folder+f"/psi_{'CAP' if use_CAP else 'reg'}_" + "{:0"+str(int(np.log10(len(times)))+1)+"}.npy" 
-    psis_initial      = np.load(load_psi.format(0)) # abs of inital wave function squared
-    psis_initial_flat = np.load(load_folder+"/psis_initial.npy") # inital wave function
+    psis_initial      = np.load(load_psi.format(0)) # abs of initial wave function squared
+    psis_initial_flat = np.load(load_folder+"/psis_initial.npy") # initial wave function
     
     V_plot = np.load(load_folder+"/V_plot.npy")
     if do_CAP_plot and use_CAP:
@@ -555,7 +562,7 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
     lines_psi = [(ax.plot(x, psis_initial[p], label=plot_labels[p]))[0] for p in range(len(psis_initial))]
     
     
-    # we allways show the initial wave function in the background
+    # we always show the initial wave function in the background
     # if there is only one wave function, or their initial value are the same
     if len(psis_initial) == 1 or (psis_initial[0] == psis_initial[1]).all(): # or psis_initial.count(psis_initial[0]) > 1:
         # line_initial, = ax.plot(x, np.abs(psis_initial[0])**2, 'g--', label=r"$\psi_0$", zorder=2)
@@ -624,7 +631,7 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
     
     
     # saving to m4 using ffmpeg writer
-    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/bendikst/OneDrive - OsloMet/Dokumenter/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe' # replace wiht your local path
+    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/bendikst/OneDrive - OsloMet/Dokumenter/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe' # replace with your local path
     writervideo = animation.FFMpegWriter(fps=30) # ,bitrate=30000)
     ani.save(load_folder+f"/animation_{'CAP' if use_CAP else 'reg'}.mp4", writer=writervideo, ) # dpi=500, 
     plt.show()
@@ -648,6 +655,7 @@ def run_anim_CAP(x0          = -30,
                  gamma_      = .05,
                  R_part      = .75,
                  pot_2       = 1,
+                 do_dP_dp_plot=True,
                  ):
 
     T = T0 if T0 is not None else 2*(L/4 + np.abs(x0))/np.abs(p0)
@@ -668,10 +676,10 @@ def run_anim_CAP(x0          = -30,
     psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
                                                                                  CAP = [CAP_vector, CAP_locs], 
                                                                                  plot_labels=labels, V_plot=potential.diagonal(),
-                                                                                 do_dP_dp_plot=True, do_live_plot=False, 
-                                                                                 do_save_psi=True, do_save_dPdp=True,) 
+                                                                                 do_dP_dp_plot=do_dP_dp_plot, do_live_plot=True, 
+                                                                                 do_save_psi=True, do_save_dPdp=True,pot_2=pot_2) 
     
-    plot_title = "Scattering on " + "doubble" if pot_2==1 else "single" + " barrier, with CAP."
+    plot_title = "Scattering on " + "double" if pot_2==1 else "single" + " barrier, with CAP."
     load_and_plot(use_CAP=True, do_dP_dp_plot=True, plot_title=plot_title)
     
 
@@ -689,6 +697,7 @@ def run_anim_reg(x0          = -30,
                  s           = 25,
                  d           = 2,
                  pot_2       = 1,
+                 do_dP_dp_plot=False,
                  ):
 
     T = T0 if T0 is not None else (L/4 + np.abs(x0))/np.abs(p0)
@@ -706,10 +715,10 @@ def run_anim_reg(x0          = -30,
     
     psis, Transmission, Reflection, Remainder, phi2, inte, x, k_fft = solve_once(x, psis, Hamiltonians, times, midpoint=d+w/2, 
                                                                                  plot_labels=labels, V_plot=potential.diagonal(),
-                                                                                 do_dP_dp_plot=True, do_live_plot=False, 
-                                                                                 do_save_psi=True, do_save_dPdp=True,) 
+                                                                                 do_dP_dp_plot=do_dP_dp_plot, do_live_plot=True, 
+                                                                                 do_save_psi=True, do_save_dPdp=True,pot_2=pot_2) 
     
-    plot_title = "Scattering on " + "doubble" if pot_2==1 else "single" + " barrier, without CAP."
+    plot_title = "Scattering on " + "double" if pot_2==1 else "single" + " barrier, without CAP."
     load_and_plot(use_CAP=False, do_dP_dp_plot=True, plot_title=plot_title)
     
     plt.show()
@@ -717,8 +726,34 @@ def run_anim_reg(x0          = -30,
 
 
 def main():    
-    run_anim_CAP()
-    run_anim_reg()
+    run_anim_CAP(x0          = -50,
+                 sigmap      = 0.1,
+                 p0          = 1.7,
+                 tau         = 0,
+                 L           = 400,
+                 n           = 1024,
+                 t_steps     = 200,
+                 T0          = None,
+                 V0          = 4,
+                 w           = 1,
+                 s           = 25,
+                 d           = 2,
+                 gamma_      = .0045,
+                 R_part      = .75,
+                 pot_2       = 0,
+                 do_dP_dp_plot=False,
+                 )
+    run_anim_reg(x0          = -50,
+                 sigmap      = 0.1,
+                 p0          = 1.8,
+                 L           = 500,
+                 n           = 1024,
+                 t_steps     = 1000,
+                 T0          = 1000,
+                 V0          = 4,
+                 pot_2       = 0,
+                 do_dP_dp_plot=False,
+                 )
 
 
 if __name__ == "__main__":

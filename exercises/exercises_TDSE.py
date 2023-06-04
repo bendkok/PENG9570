@@ -517,24 +517,24 @@ def solve_no_plotting(psis, Hamiltonians):
     return psis_new
 
 
-def exe_2_4(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .2,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 1000,
-            n           = 2048,
-            V0          = 2,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 1,
-            animate     = False,
-            do_save     = False,
-            save_name   = None,
-            ):
-
+def solve_no_CAP(x0          = -30,
+                 sigmap      = 0.1,
+                 p0_min      = .2,
+                 p0_max      = 6,
+                 n_p0        = 200,
+                 tau         = 0,
+                 L           = 1000,
+                 n           = 2048,
+                 V0          = 2,
+                 w           = .5,
+                 s           = 25,
+                 d           = 2,
+                 pot_2       = 1,
+                 animate     = False,
+                 do_save     = False,
+                 save_name   = None,
+                 ):
+ 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
 
@@ -684,30 +684,30 @@ def exe_2_4(x0          = -30,
         speed = 10
         n2 = int(n_p0/2)
         print(p0s[ 0])
-        exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,Ts[ 0],speed,V0,w,s,d,pot_2)
+        solve_no_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,Ts[ 0],speed,V0,w,s,d,pot_2)
         print(p0s[n2])
-        exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,Ts[n2],speed,V0,w,s,d,pot_2)
+        solve_no_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,Ts[n2],speed,V0,w,s,d,pot_2)
         print(p0s[-1])
-        exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,Ts[-1],speed,V0,w,s,d,pot_2)
+        solve_no_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,Ts[-1],speed,V0,w,s,d,pot_2)
         
     return p0s,trans_probability,refle_probability,trap_probability,k_fft,phi2s
 
 
-def exe_2_4_anim(x0          = -50,
-                 sigmap      = 0.1,
-                 p0          = 1.8,
-                 tau         = 0,
-                 L           = 700,
-                 n           = 2048,
-                 t_steps     = 1000,
-                 T0          = 1000,
-                 plot_every  = 8,
-                 V0          = 2,
-                 w           = 1,
-                 s           = 25,
-                 d           = 2,
-                 pot_2       = 1,
-                 ):
+def solve_no_CAP_anim(x0          = -50,
+                      sigmap      = 0.1,
+                      p0          = 1.8,
+                      tau         = 0,
+                      L           = 700,
+                      n           = 2048,
+                      t_steps     = 1000,
+                      T0          = 1000,
+                      plot_every  = 8,
+                      V0          = 2,
+                      w           = 1,
+                      s           = 25,
+                      d           = 2,
+                      pot_2       = 1,
+                      ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     # h = (np.max(x)-np.min(x))/n # physical step length
@@ -795,26 +795,26 @@ def square_gamma_CAP(x, dt=1, gamma_0=1, R=160):
     return Gamma_vector, exp_Gamma_vector_dt, [CAP_locs, CAP_R_locs, CAP_L_locs]
 
 
-def exe_CAP(x0          = -30,
-            sigmap      = 0.1,
-            p0_min      = .2,
-            p0_max      = 6,
-            n_p0        = 200,
-            tau         = 0,
-            L           = 200,
-            n           = 512,
-            t_steps     = 500,
-            V0          = 3,
-            w           = .5,
-            s           = 25,
-            d           = 2,
-            pot_2       = 1,
-            animate     = False,
-            gamma_0     = 6 / 1000,
-            R_part      = .75,
-            do_save     = False,
-            save_name   = None,
-            ):
+def solve_with_CAP(x0          = -30,
+                   sigmap      = 0.1,
+                   p0_min      = .2,
+                   p0_max      = 6,
+                   n_p0        = 200,
+                   tau         = 0,
+                   L           = 200,
+                   n           = 512,
+                   t_steps     = 500,
+                   V0          = 3,
+                   w           = .5,
+                   s           = 25,
+                   d           = 2,
+                   pot_2       = 1,
+                   animate     = False,
+                   gamma_0     = 6 / 1000,
+                   R_part      = .75,
+                   do_save     = False,
+                   save_name   = None,
+                   ):
 
     x = np.linspace(-L/2, L/2, n) # physical grid
     h = (np.max(x)-np.min(x))/(n-1) # physical step length
@@ -1083,33 +1083,33 @@ def exe_CAP(x0          = -30,
 
     if animate:
         n2 = int(n_p0/2)
-        exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,finish_l[ 0],finish_l[ 0]*dts[ 0],int(finish_l[ 0]/200),V0,w,s,d,gamma_0s[ 0],R_part,pot_2)
-        exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,finish_l[n2],finish_l[n2]*dts[n2],int(finish_l[n2]/200),V0,w,s,d,gamma_0s[n2],R_part,pot_2)
-        exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,finish_l[-1],finish_l[-1]*dts[-1],int(finish_l[-1]/200),V0,w,s,d,gamma_0s[-1],R_part,pot_2)
-        # exe_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
-        # exe_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
-        # exe_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
+        solve_with_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,finish_l[ 0],finish_l[ 0]*dts[ 0],int(finish_l[ 0]/200),V0,w,s,d,gamma_0s[ 0],R_part,pot_2)
+        solve_with_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,finish_l[n2],finish_l[n2]*dts[n2],int(finish_l[n2]/200),V0,w,s,d,gamma_0s[n2],R_part,pot_2)
+        solve_with_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,finish_l[-1],finish_l[-1]*dts[-1],int(finish_l[-1]/200),V0,w,s,d,gamma_0s[-1],R_part,pot_2)
+        # solve_with_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
+        # solve_with_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
+        # solve_with_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,T,1,2,V0,w,s,d,gamma_0,R_part)
 
     return p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
 
 
-def exe_CAP_anim(x0          = -50,
-                 sigmap      = 0.1,
-                 p0          = 1.7,
-                 tau         = 0,
-                 L           = 400,
-                 n           = 1024,
-                 t_steps     = 200,
-                 T0          = None,
-                 plot_every  = 2,
-                 V0          = 2,
-                 w           = 1,
-                 s           = 25,
-                 d           = 2,
-                 gamma_      = .0045,
-                 R_part      = .75,
-                 pot_2       = 1,
-                 ):
+def solve_with_CAP_anim(x0          = -50,
+                        sigmap      = 0.1,
+                        p0          = 1.7,
+                        tau         = 0,
+                        L           = 400,
+                        n           = 1024,
+                        t_steps     = 200,
+                        T0          = None,
+                        plot_every  = 2,
+                        V0          = 2,
+                        w           = 1,
+                        s           = 25,
+                        d           = 2,
+                        gamma_      = .0045,
+                        R_part      = .75,
+                        pot_2       = 1,
+                        ):
 
 
     T = (L/4 + np.abs(x0))/np.abs(p0)*2.5 if T0 is None else T0
@@ -1179,13 +1179,13 @@ if __name__ == "__main__":
     # print("\nExercise 2.3:")
     # exe_2_3()
     # print("\nExercise 2.4:")
-    # exe_2_4(pot_2=1, animate=True)
-    # exe_2_4(pot_2=0, animate=True)
+    # solve_no_CAP(pot_2=1, animate=True)
+    # solve_no_CAP(pot_2=0, animate=True)
     
-    # exe_2_4_anim(pot_2=1,p0=.6)
-    # exe_CAP_anim(pot_2=0)
-    # exe_2_4_anim(pot_2=1)
-    # exe_CAP_anim(pot_2=1)
+    # solve_no_CAP_anim(pot_2=1,p0=.6)
+    # solve_with_CAP_anim(pot_2=0)
+    # solve_no_CAP_anim(pot_2=1)
+    # solve_with_CAP_anim(pot_2=1)
     
     savename = "att15"
     
@@ -1200,50 +1200,50 @@ if __name__ == "__main__":
     anim    = False
     gamma_0 = 2 * 6 / 1000
     
-    # exe_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
+    # solve_with_CAP_anim(x0=-30,p0=p0_min,pot_2=1,L=300,n=512,t_steps=300,V0=3,R_part=.65,w=.5)
     exit()
     
     print("\nCAP single potential: ")
-    cap_sing = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, gamma_0=gamma_0, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    cap_sing = solve_with_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, gamma_0=gamma_0, p0_min=p0_min, p0_max=p0_max, pot_2=0, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     print("\nCAP double potential: ")
-    cap_doub = exe_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, gamma_0=gamma_0, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
+    cap_doub = solve_with_CAP(animate=anim, x0=x0, V0=V0, w=w, d=d, s=s, gamma_0=gamma_0, p0_min=p0_min, p0_max=p0_max, pot_2=1, n_p0=n_p0, L=250, n=512, t_steps=200, do_save=True, save_name=savename) 
     
     # p0s,Transmission,Reflection,Remainder,sums,k_fft,phi2s
     
     print("\nNo CAP single potential: ")
-    reg_sing = exe_2_4(x0          = x0,
-                       sigmap      = 0.1,
-                       p0_min      = p0_min,
-                       p0_max      = p0_max,
-                       n_p0        = n_p0,
-                       tau         = 0,
-                       L           = 500,
-                       n           = 1024,
-                       V0          = V0,
-                       w           = w,
-                       s           = s,
-                       d           = d,
-                       pot_2       = 0,
-                       animate     = anim, 
-                       do_save     = True,
-                       save_name   = savename,)
+    reg_sing = solve_no_CAP(x0          = x0,
+                            sigmap      = 0.1,
+                            p0_min      = p0_min,
+                            p0_max      = p0_max,
+                            n_p0        = n_p0,
+                            tau         = 0,
+                            L           = 500,
+                            n           = 1024,
+                            V0          = V0,
+                            w           = w,
+                            s           = s,
+                            d           = d,
+                            pot_2       = 0,
+                            animate     = anim, 
+                            do_save     = True,
+                            save_name   = savename,)
     print("\nNo CAP double potential: ")
-    reg_doub = exe_2_4(x0          = x0,
-                       sigmap      = 0.1,
-                       p0_min      = p0_min,
-                       p0_max      = p0_max,
-                       n_p0        = n_p0,
-                       tau         = 0,
-                       L           = 500,
-                       n           = 1024,
-                       V0          = V0,
-                       w           = w,
-                       s           = s,
-                       d           = d,
-                       pot_2       = 1,
-                       animate     = anim,
-                       do_save     = True,
-                       save_name   = savename,)
+    reg_doub = solve_no_CAP(x0          = x0,
+                            sigmap      = 0.1,
+                            p0_min      = p0_min,
+                            p0_max      = p0_max,
+                            n_p0        = n_p0,
+                            tau         = 0,
+                            L           = 500,
+                            n           = 1024,
+                            V0          = V0,
+                            w           = w,
+                            s           = s,
+                            d           = d,
+                            pot_2       = 1,
+                            animate     = anim,
+                            do_save     = True,
+                            save_name   = savename,)
     # p0s,trans_probability,refle_probability,trap_probability,k_fft,phi2s
     
     # plt.plot(reg_doub[0], np.abs((reg_doub[1] - cap_doub[1])/reg_doub[1]), label="T double")
@@ -1333,9 +1333,9 @@ if __name__ == "__main__":
     # n2 = int(100/2)
     # x0=-30; sigmap=0.1; tau=0; L=500; n=1024; V0=3; w=.5; s=25; d=2
     # p0s = np.linspace(.1, 6, 100)
-    # exe_2_4_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),8,V0,w,s,d,0)
-    # exe_2_4_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),8,V0,w,s,d,0)
-    # exe_2_4_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),8,V0,w,s,d,0)
+    # solve_no_CAP_anim(x0,sigmap,p0s[ 0],tau,L,n,1000,(L/4 - x0)/(p0s[ 0]),8,V0,w,s,d,0)
+    # solve_no_CAP_anim(x0,sigmap,p0s[n2],tau,L,n,1000,(L/4 - x0)/(p0s[n2]),8,V0,w,s,d,0)
+    # solve_no_CAP_anim(x0,sigmap,p0s[-1],tau,L,n,1000,(L/4 - x0)/(p0s[-1]),8,V0,w,s,d,0)
     
     end_time = time()
     total_time = end_time-start_time

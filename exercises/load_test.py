@@ -14,5 +14,5 @@ CAP_vector = np.load("psi_results/CAP_vector.npy")
 k_vector = np.load("psi_results/k_vector.npy")
 x_vector = np.load("psi_results/x_vector.npy")
 
-plt.plot(x_vector, dPdp[0])
+plt.plot(x_vector, dPdp)
 plt.show()
