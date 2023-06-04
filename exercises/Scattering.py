@@ -440,12 +440,12 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         for func in funcs_list:
             func()
         
-        if t in [0,25,30,35,42,120,140] and CAP is not None:
-            # np.save(f"report/psi_CAP_{t}_{pot_2}", psis)
-            figure.savefig(f"report/psi_CAP_{t}_{pot_2}.pdf")
-        elif t in [0,200,270,320,992]:
-            # np.save(f"report/psi_reg_{t}_{pot_2}", psis)
-            figure.savefig(f"report/psi_reg_{t}_{pot_2}.pdf")
+        # if t in [0,25,30,35,42,50,60,120,140,len(times)-1] and CAP is not None:
+        #     # np.save(f"report/psi_CAP_{t}_{pot_2}", psis)
+        #     figure.savefig(f"report/psi_CAP_{t}_{pot_2}.pdf")
+        # elif t in [0,200,270,320,400,992]:
+        #     # np.save(f"report/psi_reg_{t}_{pot_2}", psis)
+        #     figure.savefig(f"report/psi_reg_{t}_{pot_2}.pdf")
             
         # finds the new values for psi
         for p in range(len(psis)):
@@ -680,7 +680,7 @@ def run_anim_CAP(x0          = -30,
                                                                                  do_save_psi=True, do_save_dPdp=True,pot_2=pot_2) 
     
     plot_title = "Scattering on " + "double" if pot_2==1 else "single" + " barrier, with CAP."
-    load_and_plot(use_CAP=True, do_dP_dp_plot=True, plot_title=plot_title)
+    load_and_plot(use_CAP=True, do_dP_dp_plot=do_dP_dp_plot, plot_title=plot_title)
     
 
 
@@ -719,7 +719,7 @@ def run_anim_reg(x0          = -30,
                                                                                  do_save_psi=True, do_save_dPdp=True,pot_2=pot_2) 
     
     plot_title = "Scattering on " + "double" if pot_2==1 else "single" + " barrier, without CAP."
-    load_and_plot(use_CAP=False, do_dP_dp_plot=True, plot_title=plot_title)
+    load_and_plot(use_CAP=False, do_dP_dp_plot=do_dP_dp_plot, plot_title=plot_title)
     
     plt.show()
 
@@ -728,30 +728,58 @@ def run_anim_reg(x0          = -30,
 def main():    
     run_anim_CAP(x0          = -50,
                  sigmap      = 0.1,
-                 p0          = 1.7,
+                 p0          = 2,
                  tau         = 0,
-                 L           = 400,
-                 n           = 1024,
+                 L           = 250,
+                 n           = 512,
                  t_steps     = 200,
                  T0          = None,
                  V0          = 4,
                  w           = 1,
                  s           = 25,
                  d           = 2,
-                 gamma_      = .0045,
+                 gamma_      = .012,
                  R_part      = .75,
                  pot_2       = 0,
                  do_dP_dp_plot=False,
                  )
     run_anim_reg(x0          = -50,
                  sigmap      = 0.1,
-                 p0          = 1.8,
+                 p0          = 2,
                  L           = 500,
                  n           = 1024,
-                 t_steps     = 1000,
-                 T0          = 1000,
+                 t_steps     = 300,
+                 T0          = None,
                  V0          = 4,
                  pot_2       = 0,
+                 do_dP_dp_plot=False,
+                 )
+    run_anim_CAP(x0          = -50,
+                 sigmap      = 0.1,
+                 p0          = 2,
+                 tau         = 0,
+                 L           = 250,
+                 n           = 512,
+                 t_steps     = 200,
+                 T0          = None,
+                 V0          = 4,
+                 w           = 1,
+                 s           = 25,
+                 d           = 2,
+                 gamma_      = .012,
+                 R_part      = .75,
+                 pot_2       = 1,
+                 do_dP_dp_plot=False,
+                 )
+    run_anim_reg(x0          = -50,
+                 sigmap      = 0.1,
+                 p0          = 2,
+                 L           = 500,
+                 n           = 1024,
+                 t_steps     = 300,
+                 T0          = None,
+                 V0          = 4,
+                 pot_2       = 1,
                  do_dP_dp_plot=False,
                  )
 
