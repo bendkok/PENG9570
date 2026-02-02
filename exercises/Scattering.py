@@ -442,7 +442,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
         
         # if t in [0,25,30,35,42,50,60,120,140,len(times)-1] and CAP is not None:
         #     # np.save(f"report/psi_CAP_{t}_{pot_2}", psis)
-        #     figure.savefig(f"report/psi_CAP_{t}_{pot_2}.pdf")
+            # figure.savefig(f"report/psi_CAP_{t}_{pot_2}.pdf")
         # elif t in [0,200,270,320,400,992]:
         #     # np.save(f"report/psi_reg_{t}_{pot_2}", psis)
         #     figure.savefig(f"report/psi_reg_{t}_{pot_2}.pdf")
@@ -495,7 +495,7 @@ def solve_once(x, psis_initial, Hamiltonians, times, time_propagator=Magnus_prop
 
 
 
-def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_dP_dp_plot=True, plot_title="Scattering"):
+def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_dP_dp_plot=True, plot_title="Scattering", pot_2=0):
     
     x = np.load(load_folder+"/x_vector.npy")
     k = np.load(load_folder+"/k_vector.npy")
@@ -633,7 +633,7 @@ def load_and_plot(load_folder="psi_results", use_CAP=True, do_CAP_plot=True, do_
     # saving to m4 using ffmpeg writer
     plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/bendikst/OneDrive - OsloMet/Dokumenter/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe' # replace with your local path
     writervideo = animation.FFMpegWriter(fps=30) # ,bitrate=30000)
-    ani.save(load_folder+f"/animation_{'CAP' if use_CAP else 'reg'}.mp4", writer=writervideo, ) # dpi=500, 
+    ani.save(load_folder+f"/animation_{'CAP' if use_CAP else 'reg'}_{str(pot_2)}.mp4", writer=writervideo, ) # dpi=500, 
     plt.show()
     
     
@@ -680,7 +680,7 @@ def run_anim_CAP(x0          = -30,
                                                                                  do_save_psi=True, do_save_dPdp=True,pot_2=pot_2) 
     
     plot_title = "Scattering on " + "double" if pot_2==1 else "single" + " barrier, with CAP."
-    load_and_plot(use_CAP=True, do_dP_dp_plot=do_dP_dp_plot, plot_title=plot_title)
+    load_and_plot(use_CAP=True, do_dP_dp_plot=do_dP_dp_plot, plot_title=plot_title, pot_2=pot_2)
     
 
 
@@ -719,7 +719,7 @@ def run_anim_reg(x0          = -30,
                                                                                  do_save_psi=True, do_save_dPdp=True,pot_2=pot_2) 
     
     plot_title = "Scattering on " + "double" if pot_2==1 else "single" + " barrier, without CAP."
-    load_and_plot(use_CAP=False, do_dP_dp_plot=do_dP_dp_plot, plot_title=plot_title)
+    load_and_plot(use_CAP=False, do_dP_dp_plot=do_dP_dp_plot, plot_title=plot_title, pot_2=pot_2)
     
     plt.show()
 
@@ -734,14 +734,14 @@ def main():
                  n           = 512,
                  t_steps     = 200,
                  T0          = None,
-                 V0          = 4,
+                 V0          = 2.5,
                  w           = 1,
                  s           = 25,
                  d           = 2,
                  gamma_      = .012,
                  R_part      = .75,
                  pot_2       = 0,
-                 do_dP_dp_plot=False,
+                 do_dP_dp_plot=True,
                  )
     run_anim_reg(x0          = -50,
                  sigmap      = 0.1,
@@ -750,9 +750,9 @@ def main():
                  n           = 1024,
                  t_steps     = 300,
                  T0          = None,
-                 V0          = 4,
+                 V0          = 2.5,
                  pot_2       = 0,
-                 do_dP_dp_plot=False,
+                 do_dP_dp_plot=True,
                  )
     run_anim_CAP(x0          = -50,
                  sigmap      = 0.1,
@@ -762,14 +762,14 @@ def main():
                  n           = 512,
                  t_steps     = 200,
                  T0          = None,
-                 V0          = 4,
+                 V0          = 2.5,
                  w           = 1,
                  s           = 25,
                  d           = 2,
                  gamma_      = .012,
                  R_part      = .75,
                  pot_2       = 1,
-                 do_dP_dp_plot=False,
+                 do_dP_dp_plot=True,
                  )
     run_anim_reg(x0          = -50,
                  sigmap      = 0.1,
@@ -778,9 +778,9 @@ def main():
                  n           = 1024,
                  t_steps     = 300,
                  T0          = None,
-                 V0          = 4,
+                 V0          = 2.5,
                  pot_2       = 1,
-                 do_dP_dp_plot=False,
+                 do_dP_dp_plot=True,
                  )
 
 

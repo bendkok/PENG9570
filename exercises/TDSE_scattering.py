@@ -44,7 +44,7 @@ def Crank_Nicolson(psi, F):
 
 
 def Magnus_propagator(psi, H_adjusted):
-    # a numerical time propegator
+    # a numerical time propagator
     return H_adjusted @ psi
 
 
